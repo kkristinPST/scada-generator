@@ -29,7 +29,7 @@ export default function HelpModal({ isOpen, onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <div style={{ display: "flex", textAlign: "left", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <h2 style={{ margin: 0, fontSize: "24px", color: "#333" }}>❓ Help & Instructions</h2>
           <button
             onClick={onClose}
