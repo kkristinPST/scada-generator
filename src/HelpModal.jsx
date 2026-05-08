@@ -25,12 +25,13 @@ export default function HelpModal({ isOpen, onClose }) {
           maxWidth: "600px",
           maxHeight: "80vh",
           overflowY: "auto",
-          boxShadow: "0 10px 40px rgba(0,0,0,0.3)"
+          boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+          textAlign: "left"
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", textAlign: "left", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ margin: 0, fontSize: "24px", color: "#333" }}>❓ Help & Instructions</h2>
+          <h2 style={{ margin: 0, fontSize: "24px", color: "#333" }}>Help and Instructions</h2>
           <button
             onClick={onClose}
             style={{
@@ -46,14 +47,14 @@ export default function HelpModal({ isOpen, onClose }) {
         </div>
 
         <div style={{ color: "#555", lineHeight: "1.6", fontSize: "14px" }}>
-          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>📦 Adding Elements</h3>
+          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>Adding Elements</h3>
           <p>
             1. Click the <strong>"► Show"</strong> button to open the inventory panel on the left<br />
             2. <strong>Drag any element</strong> from the panel onto the canvas<br />
             3. The element will be placed where you drop it
           </p>
 
-          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>🔌 Creating Connections</h3>
+          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>Creating Connections</h3>
           <p>
             1. Click an element to <strong>select</strong> it (handles appear)<br />
             2. Hold <strong>Shift</strong> and click another element to create a pipe connection<br />
@@ -61,7 +62,7 @@ export default function HelpModal({ isOpen, onClose }) {
             4. You can also drag handles to create custom 90° pipes
           </p>
 
-          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>✏️ Editing Connections</h3>
+          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>Editing Connections</h3>
           <p>
             1. Click on a pipe line to <strong>select</strong> it<br />
             2. The line will highlight in blue<br />
@@ -70,18 +71,18 @@ export default function HelpModal({ isOpen, onClose }) {
             5. Handles are hidden by default for a clean canvas
           </p>
 
-          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>🏷️ Labeling Elements</h3>
+          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>Labeling Elements</h3>
           <p>
             1. <strong>Double-click</strong> any element label to edit it<br />
             2. Press Enter or click elsewhere to save
           </p>
 
-          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>🔄 Reset</h3>
+          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>Reset</h3>
           <p>
             Click the <strong>"↻ Reset Layout"</strong> button to restore the default layout and reset all pipe visibility states. This will clear all custom connections and revert to the initial configuration.
           </p>
 
-          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>💡 Tips</h3>
+          <h3 style={{ color: "#333", marginTop: "16px", marginBottom: "8px" }}>Tips</h3>
           <ul style={{ marginTop: "8px" }}>
             <li>Adjust component counts without losing your layout</li>
             <li>Handles (colored dots) only appear when you select an element</li>
