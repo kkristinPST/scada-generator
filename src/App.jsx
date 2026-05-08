@@ -584,9 +584,8 @@ export default function App() {
             { label: "Motors", value: motorCount, onChange: handleMotorCountChange },
             { label: "Valves", value: valveCount, onChange: handleValveCountChange },
             { label: "Biofilters", value: bioFilters, onChange: handleBioFiltersChange },
-            { label: "O₂", value: oxygenUnits, onChange: handleOxygenUnitsChange },
-            { label: "Cones", value: coneCount, onChange: handleConeCountChange },
-            { label: "Tanks", value: pressureTanks, onChange: handlePressureTanksChange }
+            { label: "Tanks", value: pressureTanks, onChange: handlePressureTanksChange },
+            { label: "Cones", value: coneCount, onChange: handleConeCountChange }
           ].map((item) => (
             <div key={item.label} style={{ display: "flex", gap: "4px", alignItems: "center" }}>
               <label style={{ whiteSpace: "nowrap", fontWeight: "bold" }}>{item.label}:</label>
