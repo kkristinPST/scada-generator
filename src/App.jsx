@@ -58,145 +58,150 @@ const generateRASLayout = (
   const newNodes = [];
   const edges = [];
 
-  const verticalSpacing = 100;
-  const oxygenCols = 4;
+  // Reasonable flow layout:
+  // Motor -> Pump -> Valve -> Biofilter -> Tank -> Cone -> Return Tank
+  // (with optional oxygen units branching from tank)
 
   let xPos = 50;
+  let yPos = 150;
+  const horizontalSpacing = 280;
+  const verticalSpacing = 100;
 
-  // Section 1: Intake Pumps
-  const pumpNodeIds = [];
-  let yPos = 100;
-  for (let i = 1; i <= intakePumps; i++) {
-    const id = `pump${i}`;
-    newNodes.push({
-      id,
-      type: "pump",
-      position: { x: xPos, y: yPos },
-      data: { id, label: `Pump ${i}`, handles: { top: true, bottom: true, left: false, right: false } }
-    });
-    pumpNodeIds.push(id);
-    yPos += verticalSpacing;
-  }
-
-  xPos += 280;
-  yPos = 100;
-
-  // Section 2: Motors
+  // Section 1: Motors (left column, top)
   const motorNodeIds = [];
+  let motorYPos = yPos - 150;
   for (let i = 1; i <= motorCount; i++) {
     const id = `motor${i}`;
     newNodes.push({
       id,
       type: "motor",
-      position: { x: xPos, y: yPos },
-      data: { id, label: `Motor ${i}`, handles: { top: true, bottom: true, left: false, right: false } }
+      position: { x: xPos, y: motorYPos },
+      data: { id, label: `Motor ${i}` }
     });
     motorNodeIds.push(id);
-    yPos += verticalSpacing;
+    motorYPos += verticalSpacing;
   }
 
-  xPos += 280;
-  yPos = 100;
+  // Section 2: Intake Pumps
+  const pumpNodeIds = [];
+  let pumpYPos = yPos;
+  for (let i = 1; i <= intakePumps; i++) {
+    const id = `pump${i}`;
+    newNodes.push({
+      id,
+      type: "pump",
+      position: { x: xPos, y: pumpYPos },
+      data: { id, label: `Pump ${i}` }
+    });
+    pumpNodeIds.push(id);
+    pumpYPos += verticalSpacing;
+  }
+
+  xPos += horizontalSpacing;
 
   // Section 3: Valves
   const valveNodeIds = [];
+  let valveYPos = yPos;
   for (let i = 1; i <= valveCount; i++) {
     const id = `valve${i}`;
     newNodes.push({
       id,
       type: "valve",
-      position: { x: xPos, y: yPos },
-      data: { id, label: `Valve ${i}`, handles: { top: true, bottom: true, left: false, right: false } }
+      position: { x: xPos, y: valveYPos },
+      data: { id, label: `Valve ${i}` }
     });
     valveNodeIds.push(id);
-    yPos += verticalSpacing;
+    valveYPos += verticalSpacing;
   }
 
-  xPos += 280;
-  yPos = 100;
+  xPos += horizontalSpacing;
 
   // Section 4: Biofilters
   const bioNodeIds = [];
+  let bioYPos = yPos;
   for (let i = 1; i <= bioFilters; i++) {
     const id = `bio${i}`;
     newNodes.push({
       id,
       type: "bio",
-      position: { x: xPos, y: yPos },
-      data: { id, label: `Biofilter ${i}`, handles: { top: true, bottom: true, left: false, right: false } }
+      position: { x: xPos, y: bioYPos },
+      data: { id, label: `Biofilter ${i}` }
     });
     bioNodeIds.push(id);
-    yPos += verticalSpacing;
+    bioYPos += verticalSpacing;
   }
 
-  xPos += 350;
-  yPos = 150;
+  xPos += horizontalSpacing;
 
-  // Section 5: Main Tank
+  // Section 5: Main Tank (center-bottom)
   const tankId = "tank1";
   newNodes.push({
     id: tankId,
     type: "tank",
-    position: { x: xPos, y: yPos },
-    data: { id: tankId, label: "Main Tank", handles: { top: true, bottom: true, left: true, right: true } }
+    position: { x: xPos, y: yPos + 50 },
+    data: { id: tankId, label: "Main Tank" }
   });
 
-  xPos += 350;
-  yPos = 400;
-
-  // Section 6: Oxygen/Aeration Units (Grid layout)
+  // Section 6: Oxygen Units (optional, branching down from tank)
   const oxygenNodeIds = [];
-  const oxyXPos = xPos - 100;
-  const oxyYPos = yPos;
+  if (oxygenUnits > 0) {
+    const oxyXPos = xPos + horizontalSpacing * 0.5;
+    const oxyYPos = yPos + 250;
+    const oxygenCols = Math.ceil(Math.sqrt(oxygenUnits));
 
-  for (let i = 1; i <= oxygenUnits; i++) {
-    const id = `oxygen${i}`;
-    const col = (i - 1) % oxygenCols;
-    const row = Math.floor((i - 1) / oxygenCols);
+    for (let i = 1; i <= oxygenUnits; i++) {
+      const id = `oxygen${i}`;
+      const col = (i - 1) % oxygenCols;
+      const row = Math.floor((i - 1) / oxygenCols);
 
-    newNodes.push({
-      id,
-      type: "oxygen",
-      position: {
-        x: oxyXPos + col * 150,
-        y: oxyYPos + row * 120
-      },
-      data: { id, label: `O₂ ${i}`, handles: { top: true, bottom: true, left: false, right: false } }
-    });
-    oxygenNodeIds.push(id);
+      newNodes.push({
+        id,
+        type: "oxygen",
+        position: {
+          x: oxyXPos + col * 120,
+          y: oxyYPos + row * 100
+        },
+        data: { id, label: `O₂ ${i}` }
+      });
+      oxygenNodeIds.push(id);
+    }
   }
 
+  xPos += horizontalSpacing;
+
   // Section 7: Cones (Settlement tanks)
-  xPos += 250;
-  yPos = oxyYPos;
   const coneNodeIds = [];
+  let coneYPos = yPos + 50;
   for (let i = 1; i <= coneCount; i++) {
     const id = `cone${i}`;
     newNodes.push({
       id,
       type: "cone",
-      position: { x: xPos, y: yPos },
-      data: { id, label: `Cone ${i}`, handles: { top: true, bottom: true, left: false, right: false } }
+      position: { x: xPos, y: coneYPos },
+      data: { id, label: `Cone ${i}` }
     });
     coneNodeIds.push(id);
-    yPos += verticalSpacing;
+    coneYPos += verticalSpacing;
   }
 
+  xPos += horizontalSpacing;
+
   // Section 8: Return Tanks
-  xPos += 280;
-  yPos = oxyYPos;
+  const returnTankIds = [];
+  let returnYPos = yPos + 50;
   for (let i = 1; i <= pressureTanks; i++) {
     const id = `ptank${i}`;
     newNodes.push({
       id,
       type: "tank",
-      position: { x: xPos, y: yPos },
+      position: { x: xPos, y: returnYPos },
       data: { id, label: `Return Tank ${i}` }
     });
-    yPos += verticalSpacing;
+    returnTankIds.push(id);
+    returnYPos += verticalSpacing;
   }
 
-  // Add default edges connecting the sections
+  // Create connections
   // Motors -> Pumps
   for (let i = 0; i < Math.min(motorNodeIds.length, pumpNodeIds.length); i++) {
     edges.push({
@@ -237,7 +242,7 @@ const generateRASLayout = (
     });
   }
 
-  // Main Tank -> Oxygen Units
+  // Main Tank -> Oxygen Units (if any)
   for (let i = 0; i < oxygenNodeIds.length; i++) {
     edges.push({
       id: `e${tankId}-${oxygenNodeIds[i]}`,
@@ -247,21 +252,18 @@ const generateRASLayout = (
     });
   }
 
-  // Oxygen -> Cones
-  for (let i = 0; i < Math.min(oxygenNodeIds.length, coneNodeIds.length); i++) {
+  // Oxygen/Tank -> Cones
+  const sourceForCones = oxygenNodeIds.length > 0 ? oxygenNodeIds[0] : tankId;
+  for (let i = 0; i < coneNodeIds.length; i++) {
     edges.push({
-      id: `e${oxygenNodeIds[i]}-${coneNodeIds[i]}`,
-      source: oxygenNodeIds[i],
+      id: `e${sourceForCones}-${coneNodeIds[i]}`,
+      source: sourceForCones,
       target: coneNodeIds[i],
       type: "smoothstep"
     });
   }
 
   // Cones -> Return Tanks
-  const returnTankIds = [];
-  for (let i = 1; i <= pressureTanks; i++) {
-    returnTankIds.push(`ptank${i}`);
-  }
   for (let i = 0; i < coneNodeIds.length; i++) {
     const returnTankIdx = i % returnTankIds.length;
     edges.push({
@@ -287,13 +289,13 @@ const nodeTypes = {
 };
 
 export default function App() {
-  const [intakePumps, setIntakePumps] = useState(2);
-  const [bioFilters, setBioFilters] = useState(2);
-  const [oxygenUnits, setOxygenUnits] = useState(8);
-  const [pressureTanks, setPressureTanks] = useState(2);
-  const [motorCount, setMotorCount] = useState(2);
-  const [valveCount, setValveCount] = useState(2);
-  const [coneCount, setConeCount] = useState(2);
+  const [intakePumps, setIntakePumps] = useState(1);
+  const [bioFilters, setBioFilters] = useState(1);
+  const [oxygenUnits, setOxygenUnits] = useState(0);
+  const [pressureTanks, setPressureTanks] = useState(1);
+  const [motorCount, setMotorCount] = useState(1);
+  const [valveCount, setValveCount] = useState(1);
+  const [coneCount, setConeCount] = useState(1);
   const [selectedElement, setSelectedElement] = useState(null);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
