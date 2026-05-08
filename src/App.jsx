@@ -10,11 +10,11 @@ import "reactflow/dist/style.css";
 import PumpNode from "./nodes/PumpNode";
 import TankNode from "./nodes/TankNode";
 import BiofilterNode from "./nodes/BiofilterNode";
-import OxygenNode from "./nodes/OxygenNode";
 import ValveNode from "./nodes/ValveNode";
 import MotorNode from "./nodes/MotorNode";
 import ConeNode from "./nodes/ConeNode";
-import SensorNode from "./nodes/SensorNode";
+import UVPanelNode from "./nodes/UVPanelNode";
+import CustomNode from "./nodes/CustomNode";
 import InventoryPanel from "./InventoryPanel";
 import HelpModal from "./HelpModal";
 
@@ -279,11 +279,11 @@ const nodeTypes = {
   pump: PumpNode,
   tank: TankNode,
   bio: BiofilterNode,
-  oxygen: OxygenNode,
   valve: ValveNode,
   motor: MotorNode,
   cone: ConeNode,
-  sensor: SensorNode
+  uv: UVPanelNode,
+  custom: CustomNode
 };
 
 export default function App() {
@@ -640,7 +640,7 @@ export default function App() {
           }}
           title="Help & Instructions"
         >
-          ❓ Help
+        Help
         </button>
 
         <div style={{ marginLeft: "auto", fontSize: "11px", color: "#666" }}>

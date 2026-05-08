@@ -1,15 +1,34 @@
 import { useState } from "react";
+import pumpImg from "./assets/pump.svg";
+import motorImg from "./assets/motor.svg";
+import valveImg from "./assets/valve.svg";
+import tankImg from "./assets/tank.svg";
+import coneImg from "./assets/cone.svg";
+import uvPanelImg from "./assets/UV panel.png";
 
 const AVAILABLE_ELEMENTS = [
-  { type: "pump", label: "Pump", icon: "🚿" },
-  { type: "motor", label: "Motor", icon: "⚡" },
-  { type: "valve", label: "Valve", icon: "🔀" },
-  { type: "bio", label: "Biofilter", icon: "🌱" },
-  { type: "tank", label: "Tank", icon: "🛢️" },
-  { type: "oxygen", label: "Oxygen Unit", icon: "💨" },
-  { type: "cone", label: "Cone", icon: "🔻" },
-  { type: "sensor", label: "Sensor", icon: "📊" }
+  { type: "pump", label: "Pump", icon: pumpImg, isImage: true },
+  { type: "motor", label: "Motor", icon: motorImg, isImage: true },
+  { type: "valve", label: "Valve", icon: valveImg, isImage: true },
+  { type: "bio", label: "Biofilter", icon: "biofilter", isImage: false },
+  { type: "tank", label: "Tank", icon: tankImg, isImage: true },
+  { type: "cone", label: "Cone", icon: coneImg, isImage: true },
+  { type: "uv", label: "UV Panel", icon: uvPanelImg, isImage: true },
+  { type: "custom", label: "Custom Element", icon: "✚", isImage: false }
 ];
+
+const BiofilterIcon = () => (
+  <svg
+    width="30"
+    height="30"
+    viewBox="0 0 60 60"
+    style={{ display: "block" }}
+  >
+    <circle cx="30" cy="30" r="22" fill="none" stroke="#16a34a" strokeWidth="2" />
+    <circle cx="30" cy="30" r="18" fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.5" />
+    <circle cx="30" cy="30" r="10" fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.3" />
+  </svg>
+);
 
 export default function InventoryPanel({ isOpen, onToggle }) {
   const [draggedElement, setDraggedElement] = useState(null);
@@ -97,11 +116,27 @@ export default function InventoryPanel({ isOpen, onToggle }) {
                   opacity: draggedElement?.type === element.type ? 0.7 : 1,
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px"
+                  gap: "8px"
                 }}
                 onDragOver={handleDragOver}
               >
-                <span style={{ fontSize: "16px" }}>{element.icon}</span>
+                {element.isImage ? (
+                  <img
+                    src={element.icon}
+                    alt={element.label}
+                    style={{
+                      width: "30px",
+                      height: "30px",
+                      objectFit: "contain"
+                    }}
+                  />
+                ) : element.icon === "biofilter" ? (
+                  <BiofilterIcon />
+                ) : (
+                  <span style={{ fontSize: "18px", minWidth: "30px", textAlign: "center" }}>
+                    {element.icon}
+                  </span>
+                )}
                 <span>{element.label}</span>
               </div>
             ))}
