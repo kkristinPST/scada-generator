@@ -5,6 +5,7 @@ import ReactFlow, {
   useEdgesState,
   MarkerType
 } from "reactflow";
+import { Download, Upload } from "lucide-react";
 import "reactflow/dist/style.css";
 
 import PumpNode from "./nodes/PumpNode";
@@ -563,6 +564,67 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedEdge, setEdges]);
 
+  // Export design as JSON
+  const handleExport = () => {
+    const designData = {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      config: {
+        intakePumps,
+        bioFilters,
+        oxygenUnits,
+        pressureTanks,
+        motorCount,
+        valveCount,
+        coneCount
+      },
+      nodes,
+      edges
+    };
+    const json = JSON.stringify(designData, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `scada-design-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Import design from JSON
+  const handleImport = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const designData = JSON.parse(event.target?.result);
+          setIntakePumps(designData.config.intakePumps);
+          setBioFilters(designData.config.bioFilters);
+          setOxygenUnits(designData.config.oxygenUnits);
+          setPressureTanks(designData.config.pressureTanks);
+          setMotorCount(designData.config.motorCount);
+          setValveCount(designData.config.valveCount);
+          setConeCount(designData.config.coneCount);
+          setNodes(designData.nodes);
+          setEdges(designData.edges);
+          setSelectedElement(null);
+          setSelectedEdge(null);
+        } catch (error) {
+          alert("Error importing file: " + error.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   return (
     <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column" }}>
       <style>{pipeStyles}</style>
@@ -646,6 +708,51 @@ export default function App() {
 
         <div style={{ marginLeft: "auto", fontSize: "11px", color: "#666" }}>
           💡 Shift+Click to connect | Drag handles to create pipes | Click pipes to select/delete
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
+          <button
+            onClick={handleExport}
+            style={{
+              width: "32px",
+              height: "32px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              opacity: 0.6,
+              transition: "opacity 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0
+            }}
+            title="Export as JSON"
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+          >
+            <Download size={20} color="#3a3a3a" strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleImport}
+            style={{
+              width: "32px",
+              height: "32px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              opacity: 0.6,
+              transition: "opacity 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0
+            }}
+            title="Import from JSON"
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+          >
+            <Upload size={20} color="#3a3a3a" strokeWidth={2} />
+          </button>
         </div>
       </div>
 
