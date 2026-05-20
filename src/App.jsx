@@ -5,7 +5,7 @@ import ReactFlow, {
   useEdgesState,
   MarkerType
 } from "reactflow";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, HelpCircle, Undo2, Redo2 } from "lucide-react";
 import "reactflow/dist/style.css";
 
 import PumpNode from "./nodes/PumpNode";
@@ -302,12 +302,94 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [multiSelectNodes, setMultiSelectNodes] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [historyStep, setHistoryStep] = useState(-1);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   
   const isInitialized = useRef(false);
   const elementCounterRef = useRef({});
+  const isUndoRedoing = useRef(false);
+  const previousEdgesLengthRef = useRef(0);
+
+  // Save state to history (only if not currently undoing/redoing)
+  const saveToHistory = useCallback(() => {
+    if (isUndoRedoing.current) return;
+    
+    const state = {
+      nodes,
+      edges,
+      intakePumps,
+      bioFilters,
+      oxygenUnits,
+      pressureTanks,
+      motorCount,
+      valveCount,
+      coneCount
+    };
+    const newHistory = history.slice(0, historyStep + 1);
+    newHistory.push(state);
+    setHistory(newHistory);
+    setHistoryStep(newHistory.length - 1);
+  }, [nodes, edges, intakePumps, bioFilters, oxygenUnits, pressureTanks, motorCount, valveCount, coneCount, history, historyStep]);
+
+  // Undo
+  const handleUndo = useCallback(() => {
+    if (historyStep > 0) {
+      isUndoRedoing.current = true;
+      const newStep = historyStep - 1;
+      const state = history[newStep];
+      setIntakePumps(state.intakePumps);
+      setBioFilters(state.bioFilters);
+      setOxygenUnits(state.oxygenUnits);
+      setPressureTanks(state.pressureTanks);
+      setMotorCount(state.motorCount);
+      setValveCount(state.valveCount);
+      setConeCount(state.coneCount);
+      setNodes(state.nodes);
+      setEdges(state.edges);
+      setHistoryStep(newStep);
+      setTimeout(() => { isUndoRedoing.current = false; }, 0);
+    }
+  }, [historyStep, history]);
+
+  // Redo
+  const handleRedo = useCallback(() => {
+    if (historyStep < history.length - 1) {
+      isUndoRedoing.current = true;
+      const newStep = historyStep + 1;
+      const state = history[newStep];
+      setIntakePumps(state.intakePumps);
+      setBioFilters(state.bioFilters);
+      setOxygenUnits(state.oxygenUnits);
+      setPressureTanks(state.pressureTanks);
+      setMotorCount(state.motorCount);
+      setValveCount(state.valveCount);
+      setConeCount(state.coneCount);
+      setNodes(state.nodes);
+      setEdges(state.edges);
+      setHistoryStep(newStep);
+      setTimeout(() => { isUndoRedoing.current = false; }, 0);
+    }
+  }, [historyStep, history]);
+
+  // Clear all nodes and edges
+  const handleClearAll = useCallback(() => {
+    if (window.confirm("Are you sure you want to clear everything?")) {
+      setNodes([]);
+      setEdges([]);
+      setIntakePumps(0);
+      setBioFilters(0);
+      setOxygenUnits(0);
+      setPressureTanks(0);
+      setMotorCount(0);
+      setValveCount(0);
+      setConeCount(0);
+      setSelectedElement(null);
+      setSelectedEdge(null);
+    }
+  }, []);
 
   // Initialize layout only on first render
   useEffect(() => {
@@ -491,6 +573,34 @@ export default function App() {
     };
 
     setNodes((nds) => [...nds, newNode]);
+    saveToHistory();
+
+    // Update the count state based on the dropped element type
+    switch (typeKey) {
+      case "pump":
+        setIntakePumps((prev) => prev + 1);
+        break;
+      case "motor":
+        setMotorCount((prev) => prev + 1);
+        break;
+      case "valve":
+        setValveCount((prev) => prev + 1);
+        break;
+      case "bio":
+        setBioFilters((prev) => prev + 1);
+        break;
+      case "oxygen":
+        setOxygenUnits((prev) => prev + 1);
+        break;
+      case "cone":
+        setConeCount((prev) => prev + 1);
+        break;
+      case "tank":
+        setPressureTanks((prev) => prev + 1);
+        break;
+      default:
+        break;
+    }
   };
 
   // Handle node click with Shift for multi-selection
@@ -535,6 +645,7 @@ export default function App() {
         markerEnd: { type: MarkerType.ArrowClosed }
       }
     ]);
+    saveToHistory();
   };
 
   // Handle edge click to select it
@@ -556,13 +667,22 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Delete" && selectedEdge) {
-        setEdges((eds) => eds.filter((edge) => edge.id !== selectedEdge));
+        setEdges((eds) => {
+          const newEdges = eds.filter((edge) => edge.id !== selectedEdge);
+          // Save to history after state updates
+          setTimeout(() => {
+            if (!isUndoRedoing.current) {
+              saveToHistory();
+            }
+          }, 0);
+          return newEdges;
+        });
         setSelectedEdge(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedEdge, setEdges]);
+  }, [selectedEdge]);
 
   // Export design as JSON
   const handleExport = () => {
@@ -625,6 +745,51 @@ export default function App() {
     input.click();
   };
 
+  // Save layout as default (to localStorage)
+  const handleSaveLayout = () => {
+    const layoutData = {
+      config: {
+        intakePumps,
+        bioFilters,
+        oxygenUnits,
+        pressureTanks,
+        motorCount,
+        valveCount,
+        coneCount
+      },
+      nodes,
+      edges
+    };
+    localStorage.setItem("scada-default-layout", JSON.stringify(layoutData));
+    alert("Layout saved as default!");
+  };
+
+  // Load default layout on startup (if exists)
+  useEffect(() => {
+    const savedLayout = localStorage.getItem("scada-default-layout");
+    if (savedLayout && !isInitialized.current) {
+      try {
+        const layoutData = JSON.parse(savedLayout);
+        setIntakePumps(layoutData.config.intakePumps);
+        setBioFilters(layoutData.config.bioFilters);
+        setOxygenUnits(layoutData.config.oxygenUnits);
+        setPressureTanks(layoutData.config.pressureTanks);
+        setMotorCount(layoutData.config.motorCount);
+        setValveCount(layoutData.config.valveCount);
+        setConeCount(layoutData.config.coneCount);
+        const nodesWithSelection = layoutData.nodes.map((node) => ({
+          ...node,
+          data: { ...node.data, isSelected: false }
+        }));
+        setNodes(nodesWithSelection);
+        setEdges(layoutData.edges);
+        isInitialized.current = true;
+      } catch (error) {
+        console.error("Error loading saved layout:", error);
+      }
+    }
+  }, []);
+
   return (
     <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column" }}>
       <style>{pipeStyles}</style>
@@ -671,46 +836,115 @@ export default function App() {
           ))}
         </div>
 
-        <button
-          onClick={resetLayout}
-          style={{
-            padding: "6px 12px",
-            backgroundColor: "#ff6b6b",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "bold",
-            whiteSpace: "nowrap"
-          }}
-        >
-          ↻ Reset Layout
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button
+            onClick={handleSaveLayout}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: "#27ae60",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "bold",
+              whiteSpace: "nowrap"
+            }}
+            title="Save current layout as default"
+          >
+            Save Layout
+          </button>
 
-        <button
-          onClick={() => setHelpOpen(true)}
-          style={{
-            padding: "6px 12px",
-            backgroundColor: "#4ecdc4",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "bold",
-            whiteSpace: "nowrap"
-          }}
-          title="Help & Instructions"
-        >
-        Help
-        </button>
+          <button
+            onClick={handleClearAll}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: "transparent",
+              color: "#e74c3c",
+              border: "1px solid #e74c3c",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "bold",
+              whiteSpace: "nowrap"
+            }}
+            title="Clear all nodes and edges"
+          >
+            Clear All
+          </button>
+
+          {/* <button
+            onClick={handleUndo}
+            style={{
+              width: "32px",
+              height: "32px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: historyStep > 0 ? "pointer" : "not-allowed",
+              opacity: historyStep > 0 ? 0.6 : 0.3,
+              transition: "opacity 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0
+            }}
+            title="Undo"
+            onMouseEnter={(e) => { if (historyStep > 0) e.currentTarget.style.opacity = "1"; }}
+            onMouseLeave={(e) => { if (historyStep > 0) e.currentTarget.style.opacity = "0.6"; }}
+          >
+            <Undo2 size={20} color="#3a3a3a" strokeWidth={2} />
+          </button>
+
+          <button
+            onClick={handleRedo}
+            style={{
+              width: "32px",
+              height: "32px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: historyStep < history.length - 1 ? "pointer" : "not-allowed",
+              opacity: historyStep < history.length - 1 ? 0.6 : 0.3,
+              transition: "opacity 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0
+            }}
+            title="Redo"
+            onMouseEnter={(e) => { if (historyStep < history.length - 1) e.currentTarget.style.opacity = "1"; }}
+            onMouseLeave={(e) => { if (historyStep < history.length - 1) e.currentTarget.style.opacity = "0.6"; }}
+          >
+            <Redo2 size={20} color="#3a3a3a" strokeWidth={2} />
+          </button> */}
+        </div>
 
         <div style={{ marginLeft: "auto", fontSize: "11px", color: "#666" }}>
           💡 Shift+Click to connect | Drag handles to create pipes | Click pipes to select/delete
         </div>
 
-        <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <button
+            onClick={() => setHelpOpen(true)}
+            style={{
+              width: "32px",
+              height: "32px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              opacity: 0.5,
+              transition: "opacity 0.2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0
+            }}
+            title="Help & Instructions"
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
+          >
+            <HelpCircle size={20} color="#555" strokeWidth={2} />
+          </button>
+
           <button
             onClick={handleExport}
             style={{
@@ -726,12 +960,13 @@ export default function App() {
               justifyContent: "center",
               padding: 0
             }}
-            title="Export as JSON"
+            title="Download as JSON"
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
           >
             <Download size={20} color="#3a3a3a" strokeWidth={2} />
           </button>
+
           <button
             onClick={handleImport}
             style={{
