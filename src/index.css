@@ -1,111 +1,1208 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap");
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-/*   --border: #e5e4e7;*/
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  font-family: "DM Sans", "Segoe UI", sans-serif;
+  color: oklch(22% 0.008 350);
+  background: oklch(96% 0.005 350);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --paper: oklch(96% 0.005 350);
+  --surface: oklch(98% 0.003 350);
+  --surface-raised: oklch(99% 0.002 350);
+  --ink: oklch(22% 0.008 350);
+  --muted: oklch(49% 0.008 350);
+  --quiet: oklch(62% 0.006 350);
+  --line: oklch(88% 0.006 350);
+  --line-strong: oklch(80% 0.008 350);
+  --scada-interaction: oklch(58% 0.11 220);
+  --scada-interaction-soft: oklch(93% 0.025 220);
+  --scada-symbol: oklch(35% 0.006 350);
+  --scada-pipe: oklch(54% 0.006 350);
+  --canvas: oklch(98% 0.003 350);
+  --grid-dot: oklch(84% 0.008 350);
+  --font-mono: "DM Mono", Consolas, monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-body {
-  margin: 0;
-}
-
-#root {
-/*   width: 1126px; */
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
+body {
+  min-width: 320px;
+  min-height: 100vh;
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button,
+input {
+  font: inherit;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--scada-interaction);
+  outline-offset: 2px;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.editor-shell {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  min-height: 480px;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.app-header {
+  z-index: 4;
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.brand-lockup {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.06em;
+}
+
+.brand-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.brand-name,
+.brand-subtitle,
+.eyebrow,
+.toolbar-label,
+.counter-label,
+.canvas-meta,
+.inventory-hint {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.brand-name {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+}
+
+.brand-subtitle {
+  color: var(--quiet);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+}
+
+.header-context {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.editor-toolbar {
+  z-index: 3;
+  display: flex;
+  min-height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+
+.toolbar-main,
+.toolbar-actions,
+.counter-group,
+.element-counter,
+.toolbar-divider {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-main {
+  min-width: 0;
+  gap: 20px;
+}
+
+.toolbar-label {
+  flex: 0 0 auto;
+  color: var(--quiet);
+  font-size: 9px;
+  letter-spacing: 0.11em;
+}
+
+.counter-group {
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.element-counter {
+  gap: 7px;
+}
+
+.counter-label {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.element-counter input {
+  width: 43px;
+  height: 30px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.element-counter input:hover {
+  border-color: var(--line-strong);
+}
+
+.element-counter input:focus {
+  border-color: var(--scada-interaction);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--scada-interaction-soft);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  flex: 0 0 auto;
+  background: var(--line);
+}
+
+.toolbar-actions {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.toolbar-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.toolbar-button:hover {
+  border-color: var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.toolbar-button--primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface-raised);
+}
+
+.toolbar-button--primary:hover {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction);
+  color: var(--surface-raised);
+}
+
+.toolbar-button--active {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction-soft);
+  color: var(--ink);
+}
+
+.toolbar-button--quiet-danger:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.canvas-stage {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  background: var(--canvas);
+}
+
+.canvas-stage .react-flow {
+  background: var(--canvas);
+}
+
+.canvas-status {
+  position: absolute;
+  z-index: 2;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.canvas-meta {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.canvas-meta strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.inventory-panel {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(280px, calc(100vw - 48px));
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  transform: translateX(-100%);
+  transition: transform 300ms var(--ease-out), visibility 300ms;
+  visibility: hidden;
+}
+
+.inventory-panel.is-open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.inventory-content {
+  padding: 22px 18px;
+}
+
+.inventory-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.inventory-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--quiet);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.inventory-hint {
+  margin: 0 0 14px;
+  color: var(--quiet);
+  font-size: 9px;
+  letter-spacing: 0.025em;
+  line-height: 1.6;
+}
+
+.inventory-list {
+  display: grid;
+  gap: 6px;
+}
+
+.inventory-item {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink);
+  cursor: grab;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.inventory-item:hover {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction-soft);
+  transform: translateX(2px);
+}
+
+.inventory-item:active {
+  cursor: grabbing;
+}
+
+.inventory-item.is-dragging {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction-soft);
+  opacity: 0.65;
+}
+
+.inventory-icon {
+  display: grid;
+  width: 44px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--scada-symbol);
+}
+
+.inventory-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.inventory-icon svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.inventory-icon .eq-symbol {
+  filter: none;
+}
+
+.inventory-search {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--quiet);
+}
+
+.inventory-search:focus-within {
+  border-color: var(--scada-interaction);
+}
+
+.inventory-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  outline: none;
+}
+
+.inventory-group {
+  margin-bottom: 20px;
+}
+
+.inventory-group-title,
+.inspector-label {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.fluid-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.fluid-option {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+}
+
+.fluid-option:hover {
+  border-color: var(--scada-interaction);
+}
+
+.fluid-option.is-active {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction-soft);
+}
+
+.fluid-swatch {
+  flex: 0 0 auto;
+}
+
+.inspector-panel {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  right: 12px;
+  bottom: 56px;
+  width: min(280px, calc(100vw - 24px));
+  overflow-y: auto;
+  padding: 18px 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.inspector-body {
+  display: grid;
+  gap: 16px;
+}
+
+.inspector-field {
+  display: grid;
+  min-width: 0;
+}
+
+.inspector-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.inspector-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.inspector-input:focus {
+  border-color: var(--scada-interaction);
+  outline: none;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+
+.segmented button {
+  min-height: 30px;
+  flex: 1 1 auto;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.segmented button:last-child {
+  border-right: 0;
+}
+
+.segmented button:hover {
+  color: var(--ink);
+}
+
+.segmented button.is-active {
+  background: var(--scada-interaction-soft);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--scada-interaction);
+}
+
+.inspector-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.inspector-toggle input {
+  margin: 2px 0 0;
+  accent-color: var(--scada-interaction);
+}
+
+.inspector-toggle span {
+  display: grid;
+  gap: 2px;
+}
+
+.inspector-toggle small,
+.inspector-note {
+  margin: 0;
+  color: var(--quiet);
+  font-size: 11px;
+}
+
+.inventory-item-label {
+  display: grid;
+  gap: 3px;
+}
+
+.inventory-item-label small {
+  color: var(--quiet);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: oklch(18% 0.006 350 / 0.52);
+}
+
+.help-dialog {
+  width: min(620px, 100%);
+  max-height: min(82vh, 760px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.help-dialog-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.help-dialog-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.icon-button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.help-dialog-content {
+  display: grid;
+  gap: 20px;
+  padding: 22px 28px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.help-dialog-content section {
+  display: grid;
+  gap: 6px;
+}
+
+.help-dialog-content h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.help-dialog-content p {
+  margin: 0;
+}
+
+.help-dialog-content strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.help-dialog-content ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.help-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 28px 24px;
+}
+
+.counter-pulse {
+  animation: pulse-highlight 600ms ease-out 1;
+}
+
+@keyframes pulse-highlight {
+  0% {
+    border-color: var(--scada-interaction);
+    background: var(--scada-interaction-soft);
+    box-shadow: 0 0 0 0 oklch(58% 0.11 220 / 0.25);
+  }
+
+  100% {
+    border-color: var(--line);
+    background: var(--surface-raised);
+    box-shadow: 0 0 0 6px oklch(58% 0.11 220 / 0);
+  }
+}
+
+.react-flow__edge-step {
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.react-flow__edge-step:hover,
+.react-flow__edge-step.selected {
+  stroke: var(--scada-interaction) !important;
+  stroke-width: 3.5 !important;
+}
+
+.react-flow__edge-smoothstep {
+  stroke: var(--scada-pipe);
+  stroke-width: 2;
+}
+
+.react-flow__edge-smoothstep:hover,
+.react-flow__edge-smoothstep.selected {
+  stroke: var(--scada-interaction) !important;
+  stroke-width: 3 !important;
+}
+
+.react-flow__handle {
+  border: 2px solid var(--surface-raised);
+  background: var(--scada-interaction) !important;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .editor-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .toolbar-main {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-header {
+    min-height: 56px;
+    padding: 0 14px;
+  }
+
+  .header-context {
+    display: none;
+  }
+
+  .editor-toolbar {
+    padding: 10px 14px;
+  }
+
+  .counter-group {
+    gap: 8px 12px;
+  }
+
+  .counter-label {
+    font-size: 8px;
+  }
+
+  .element-counter input {
+    width: 38px;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-button {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .canvas-status {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+  }
+
+  .canvas-meta {
+    min-height: 26px;
+    padding: 0 7px;
+    font-size: 8px;
+  }
+
+  .help-dialog-header,
+  .help-dialog-content {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .help-dialog-footer {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── P&ID import ── */
+.pid-dialog {
+  width: min(760px, 100%);
+}
+
+.drop-zone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--muted);
+}
+
+.drop-zone.is-over {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction-soft);
+}
+
+.drop-zone > span {
+  flex: 1 1 200px;
+}
+
+.drop-zone-file {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.drop-zone-file small {
+  color: var(--quiet);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.pid-notes {
+  min-height: 64px;
+  padding: 8px 9px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.pid-remember {
+  margin-top: 8px;
+}
+
+.pid-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid oklch(80% 0.06 25);
+  background: oklch(97% 0.015 25);
+  color: oklch(42% 0.12 25);
+}
+
+.pid-progress {
+  justify-items: center;
+  gap: 8px;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  text-align: center;
+}
+
+.pid-progress strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.pid-progress small {
+  color: var(--quiet);
+}
+
+.spin {
+  color: var(--scada-interaction);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pid-summary {
+  color: var(--ink);
+}
+
+.pid-meta {
+  color: var(--quiet);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.pid-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pid-list li {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+
+.pid-list li.is-excluded {
+  opacity: 0.5;
+}
+
+.pid-list input[type="checkbox"] {
+  flex: 0 0 auto;
+  accent-color: var(--scada-interaction);
+}
+
+.pid-icon {
+  display: grid;
+  width: 34px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.pid-icon svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.pid-item-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+
+.pid-item-text strong {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.pid-item-text small {
+  color: var(--quiet);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pid-item-text .pid-item-note {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.pid-type {
+  max-width: 140px;
+  min-height: 28px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.confidence {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px dashed var(--line-strong);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.confidence--low {
+  border-style: solid;
+  border-color: var(--muted);
+  color: var(--ink);
+}
+
+.pid-notes-list {
+  display: grid;
+  gap: 6px;
+}
+
+.pid-review details summary {
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.pid-footer {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.toolbar-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.review-note {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-raised);
+}
+
+.review-note p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.review-note .toolbar-button {
+  justify-self: start;
+}
+
+.pid-source dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.pid-source dt {
+  color: var(--quiet);
+}
+
+.pid-source dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .pid-list li {
+    flex-wrap: wrap;
+  }
+
+  .pid-type {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+}
+
+.pid-pages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 16px;
+  align-items: start;
+}
+
+.pid-field-error {
+  color: oklch(42% 0.12 25);
+}
+
+.pid-thumb {
+  display: grid;
+  min-height: 120px;
+  margin: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--quiet);
+  font-size: 11px;
+}
+
+.pid-thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pid-thumb figcaption {
+  justify-self: stretch;
   padding: 4px 8px;
-  background: var(--code-bg);
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 560px) {
+  .pid-pages {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── examples menu ── */
+.examples-menu {
+  position: relative;
+}
+
+.examples-popover {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  width: min(320px, calc(100vw - 32px));
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 8px 24px oklch(18% 0.006 350 / 0.12);
+}
+
+.examples-item {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.examples-item:hover,
+.examples-item:focus-visible {
+  border-color: var(--scada-interaction);
+  background: var(--scada-interaction-soft);
+}
+
+.examples-item strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.examples-item small {
+  color: var(--quiet);
+  font-size: 11px;
+  line-height: 1.4;
 }

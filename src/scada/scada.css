@@ -1,0 +1,254 @@
+/* NJORD SCADA tokens and process-symbol styles.
+ *
+ * Token values are the light ("modern operations") skin from the NJORD design
+ * system: https://kkristinpst.github.io/design-system/components/scada-symbols/
+ * Symbols read every colour from these variables, so a skin swap only has to
+ * redefine this block.
+ */
+
+:root {
+  --color-sc-pipe: #B8C2CF;
+  --color-sc-node: #FFFFFF;
+  --color-sc-edge: #222B3A;
+  --color-sc-vessel: #D9D1C8;
+  --color-sc-water: #9E9E9E;
+  --color-sc-line: #9AA3AF;
+  --color-sc-fill-lite: #E4E9F0;
+  --color-sc-cabinet: #EDE7DF;
+  --color-sc-cabinet-edge: #B9B0A4;
+  --color-sc-halo: #FFFFFF;
+  --color-sc-run: #3C4A5E;
+  --color-sc-stop: #C9D2DC;
+  --color-sc-abnormal: #F53E39;
+  --color-sc-manual: #9A5C00;
+  --color-sc-alarm-lo: #F2CC2E;
+  --color-sc-alarm-lo-edge: #C9A300;
+  --color-sc-alarm-lo-text: #6B5700;
+
+  --color-fl-proc: #2C6FA8;
+  --color-fl-raw: #4093D2;
+  --color-fl-drain: #6E7B8C;
+  --color-fl-sludge: #8A7250;
+  --color-fl-glycol: #B87214;
+  --color-fl-brine: #2AA198;
+  --color-fl-o2: #1F8FA8;
+  --color-fl-gas: #6E7B8C;
+  --color-fl-chem: #B0563F;
+  --color-fl-feed: #5F7A2E;
+
+  --color-primary: #00AEEE;
+  --color-fg: #0F182B;
+  --color-slate-300: #CAD5E2;
+  --color-slate-400: #666F7D;
+  --color-slate-600: #5C646F;
+  --color-warning: #FBA100;
+  --color-warning-text: #8A5A00;
+  --color-critical-text: #C42620;
+}
+
+/* ── equipment node ── */
+.eq-node {
+  display: flex;
+  min-width: 72px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+}
+
+.eq-body {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.eq-symbol {
+  display: block;
+  overflow: visible;
+  transition: filter 120ms;
+}
+
+/* Cyan is interaction only: hover and selection, never state. */
+.eq-node:hover .eq-symbol,
+.react-flow__node.selected .eq-symbol,
+.eq-node.is-selected .eq-symbol {
+  filter: drop-shadow(0 0 2px var(--color-primary)) drop-shadow(0 0 1px var(--color-primary));
+}
+
+/* Equipment out of service: the machine ghosts, alarm and suppression marks stay solid. */
+.eq-node.is-oos .eq-symbol,
+.eq-node.is-oos .eq-readout,
+.eq-node.is-oos .eq-tag {
+  opacity: 0.4;
+}
+
+.eq-chip,
+.eq-badge {
+  position: absolute;
+  display: block;
+  overflow: visible;
+}
+
+.eq-tag {
+  max-width: 120px;
+  padding: 1px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: var(--canvas, var(--color-sc-halo));
+  color: var(--color-fg);
+  cursor: text;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 14px;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-shadow: 0 0 3px var(--color-sc-halo), 0 0 3px var(--color-sc-halo);
+}
+
+.eq-tag--crit { color: var(--color-critical-text); }
+.eq-tag--high { color: var(--color-warning-text); }
+.eq-tag--lo { color: var(--color-sc-alarm-lo-text); }
+
+.eq-node.is-selected .eq-tag {
+  border-color: var(--color-primary);
+  background: var(--color-sc-node);
+}
+
+.eq-tag-input {
+  width: 96px;
+  padding: 1px 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: 3px;
+  background: var(--color-sc-node);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+}
+
+/* ── readout: value box, alarm marks the edge and value only ── */
+.rd-box { fill: var(--color-sc-node); stroke: var(--color-slate-300); stroke-width: 1.3; }
+.rd-v { font-family: var(--font-mono); font-size: 14px; font-weight: 500; fill: var(--color-fg); }
+.rd-u { font-family: var(--font-mono); font-size: 10px; font-weight: 400; fill: var(--color-slate-400); }
+.rd.crit .rd-box { stroke: var(--color-sc-abnormal); stroke-width: 2.4; }
+.rd.crit .rd-v { fill: var(--color-critical-text); }
+.rd.high .rd-box { stroke: var(--color-warning); stroke-width: 2.4; }
+.rd.high .rd-v { fill: var(--color-warning-text); }
+.rd.lo .rd-box { stroke: var(--color-sc-alarm-lo-edge); stroke-width: 2.4; }
+.rd.lo .rd-v { fill: var(--color-sc-alarm-lo-text); }
+.rd.sup .rd-box { stroke: var(--color-slate-600); stroke-dasharray: 3 2; }
+
+/* ── pipes: tinted by fluid, gases dashed ── */
+.react-flow__edge .react-flow__edge-path {
+  stroke: var(--color-sc-pipe);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.react-flow__edge.fl-proc .react-flow__edge-path { stroke: var(--color-fl-proc); }
+.react-flow__edge.fl-raw .react-flow__edge-path { stroke: var(--color-fl-raw); }
+.react-flow__edge.fl-drain .react-flow__edge-path { stroke: var(--color-fl-drain); }
+.react-flow__edge.fl-sludge .react-flow__edge-path { stroke: var(--color-fl-sludge); }
+.react-flow__edge.fl-glycol .react-flow__edge-path { stroke: var(--color-fl-glycol); }
+.react-flow__edge.fl-brine .react-flow__edge-path { stroke: var(--color-fl-brine); }
+.react-flow__edge.fl-chem .react-flow__edge-path { stroke: var(--color-fl-chem); }
+.react-flow__edge.fl-feed .react-flow__edge-path { stroke: var(--color-fl-feed); }
+.react-flow__edge.fl-o2 .react-flow__edge-path { stroke: var(--color-fl-o2); stroke-dasharray: 7 6; }
+.react-flow__edge.fl-gas .react-flow__edge-path { stroke: var(--color-fl-gas); stroke-dasharray: 7 6; }
+
+.react-flow__edge:hover .react-flow__edge-path,
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+.eq-node.is-selected .react-flow__handle {
+  opacity: 1;
+}
+
+/* ── generated from a P&ID and flagged as uncertain: neutral dashed frame, never a state colour ── */
+.eq-node.needs-review {
+  border: 1px dashed var(--color-slate-400);
+  border-radius: 6px;
+}
+
+.react-flow__edge.pipe-review .react-flow__edge-path {
+  stroke-dasharray: 2 5;
+}
+
+/* ── section label: stage heading on the mimic ── */
+.section-label {
+  min-width: 120px;
+  padding: 2px 2px 5px;
+  border-bottom: 1px solid var(--color-slate-300);
+  color: var(--color-slate-600);
+  cursor: grab;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.section-label.is-selected {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-fg);
+}
+
+.eq-desc {
+  max-width: 130px;
+  margin-top: -4px;
+  color: var(--color-slate-600);
+  font-size: 10px;
+  line-height: 13px;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+/* ── off-page connector: arrow box where a line leaves the screen ── */
+.offpage-shape {
+  position: relative;
+  display: flex;
+  min-width: 110px;
+  height: 36px;
+  align-items: center;
+  padding: 0 28px 0 16px;
+  background: var(--color-sc-edge);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+  color: var(--color-fg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.offpage-shape::before {
+  position: absolute;
+  z-index: 0;
+  inset: 1.3px;
+  background: var(--color-sc-node);
+  clip-path: polygon(0 0, calc(100% - 13.4px) 0, 100% 50%, calc(100% - 13.4px) 100%, 0 100%);
+  content: "";
+}
+
+.offpage-shape > * {
+  position: relative;
+  z-index: 1;
+}
+
+.offpage.is-selected .offpage-shape,
+.offpage:hover .offpage-shape {
+  background: var(--color-primary);
+}
+
+.offpage.needs-review {
+  outline: 1px dashed var(--color-slate-400);
+  outline-offset: 4px;
+}
+
+.offpage.is-selected .react-flow__handle {
+  opacity: 1;
+}

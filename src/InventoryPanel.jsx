@@ -1,148 +1,127 @@
 import { useState } from "react";
-import pumpImg from "./assets/pump.svg";
-import motorImg from "./assets/motor.svg";
-import valveImg from "./assets/valve.svg";
-import tankImg from "./assets/tank.svg";
-import coneImg from "./assets/cone.svg";
-import uvPanelImg from "./assets/UV panel.png";
+import { Search, X } from "lucide-react";
+import { ELEMENTS, FLUIDS } from "./scada/catalog";
 
-const AVAILABLE_ELEMENTS = [
-  { type: "pump", label: "Pump", icon: pumpImg, isImage: true },
-  { type: "motor", label: "Motor", icon: motorImg, isImage: true },
-  { type: "valve", label: "Valve", icon: valveImg, isImage: true },
-  { type: "bio", label: "Biofilter", icon: "biofilter", isImage: false },
-  { type: "tank", label: "Tank", icon: tankImg, isImage: true },
-  { type: "cone", label: "Cone", icon: coneImg, isImage: true },
-  { type: "uv", label: "UV Panel", icon: uvPanelImg, isImage: true },
-  { type: "custom", label: "Custom Element", icon: "✚", isImage: false }
-];
+const CATEGORIES = [...new Set(ELEMENTS.map((element) => element.category))];
 
-const BiofilterIcon = () => (
-  <svg
-    width="30"
-    height="30"
-    viewBox="0 0 60 60"
-    style={{ display: "block" }}
-  >
-    <circle cx="30" cy="30" r="22" fill="none" stroke="#16a34a" strokeWidth="2" />
-    <circle cx="30" cy="30" r="18" fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.5" />
-    <circle cx="30" cy="30" r="10" fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.3" />
-  </svg>
-);
+export function ElementIcon({ element }) {
+  const { Symbol, width, height } = element;
+  if (element.readout) return <Symbol data={{ value: "7.2", unit: "pH" }} />;
+  // Fit the canvas size into the 34px icon box without changing its proportions.
+  const scale = Math.min(34 / width, 34 / height, 1);
+  return <Symbol running width={width * scale} height={height * scale} />;
+}
 
-export default function InventoryPanel({ isOpen, onToggle }) {
+export default function InventoryPanel({ isOpen, onToggle, activeFluid, onFluidChange }) {
   const [draggedElement, setDraggedElement] = useState(null);
+  const [query, setQuery] = useState("");
 
-  const handleDragStart = (e, element) => {
+  const handleDragStart = (event, element) => {
     setDraggedElement(element);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text", JSON.stringify(element));
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text", JSON.stringify({ type: element.type, label: element.label }));
   };
 
-  const handleDragEnd = () => {
-    setDraggedElement(null);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
+  const needle = query.trim().toLowerCase();
+  const matches = (element) =>
+    !needle || element.label.toLowerCase().includes(needle) || element.category.toLowerCase().includes(needle);
 
   return (
-    <>
-      {/* Toggle Button */}
-      <button
-        onClick={onToggle}
-        style={{
-          position: "absolute",
-          top: "60px",
-          left: "10px",
-          zIndex: 100,
-          padding: "8px 12px",
-          backgroundColor: "#4ecdc4",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontSize: "12px",
-          fontWeight: "bold",
-          transition: "all 0.3s ease"
-        }}
-        title="Toggle Inventory"
-      >
-        {isOpen ? "◄ Hide" : "► Show"}
-      </button>
+    <aside
+      id="inventory-panel"
+      className={`inventory-panel${isOpen ? " is-open" : ""}`}
+      aria-label="Equipment inventory"
+      aria-hidden={!isOpen}
+    >
+      <div className="inventory-content">
+        <div className="inventory-heading">
+          <div>
+            <span className="eyebrow">Library</span>
+            <h2>Elements</h2>
+          </div>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onToggle}
+            aria-label="Close equipment inventory"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <p className="inventory-hint">Drag a symbol onto the canvas to add it to your diagram.</p>
 
-      {/* Inventory Panel */}
-      <div
-        style={{
-          position: "fixed",
-          left: 0,
-          top: "50px",
-          width: "200px",
-          height: "calc(100vh - 60px)",
-          backgroundColor: "#f0f0f0",
-          borderRight: "2px solid #ddd",
-          boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
-          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.3s ease",
-          zIndex: 99,
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto"
-        }}
-      >
-        <div style={{ padding: "12px" }}>
-          <h3 style={{ margin: "50px 0 12px 0", fontSize: "14px", color: "#333" }}>
-            Elements
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {AVAILABLE_ELEMENTS.map((element) => (
-              <div
-                key={element.type}
-                draggable
-                onDragStart={(e) => handleDragStart(e, element)}
-                onDragEnd={handleDragEnd}
-                style={{
-                  padding: "10px",
-                  backgroundColor: draggedElement?.type === element.type ? "#4ecdc4" : "white",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  cursor: "grab",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  userSelect: "none",
-                  transition: "all 0.2s ease",
-                  opacity: draggedElement?.type === element.type ? 0.7 : 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}
-                onDragOver={handleDragOver}
-              >
-                {element.isImage ? (
-                  <img
-                    src={element.icon}
-                    alt={element.label}
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      objectFit: "contain"
-                    }}
-                  />
-                ) : element.icon === "biofilter" ? (
-                  <BiofilterIcon />
-                ) : (
-                  <span style={{ fontSize: "18px", minWidth: "30px", textAlign: "center" }}>
-                    {element.icon}
-                  </span>
-                )}
-                <span>{element.label}</span>
+        <label className="inventory-search">
+          <Search size={13} strokeWidth={1.8} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Filter elements"
+            aria-label="Filter elements"
+          />
+        </label>
+
+        {CATEGORIES.map((category) => {
+          const items = ELEMENTS.filter((element) => element.category === category && matches(element));
+          if (items.length === 0) return null;
+          return (
+            <section className="inventory-group" key={category}>
+              <h3 className="inventory-group-title">{category}</h3>
+              <div className="inventory-list">
+                {items.map((element) => (
+                  <div
+                    key={element.type}
+                    className={`inventory-item${draggedElement?.type === element.type ? " is-dragging" : ""}`}
+                    draggable
+                    onDragStart={(event) => handleDragStart(event, element)}
+                    onDragEnd={() => setDraggedElement(null)}
+                  >
+                    <span className="inventory-icon" aria-hidden="true">
+                      <ElementIcon element={element} />
+                    </span>
+                    <span className="inventory-item-label">{element.label}</span>
+                  </div>
+                ))}
               </div>
+            </section>
+          );
+        })}
+
+        <section className="inventory-group">
+          <h3 className="inventory-group-title">Pipes</h3>
+          <p className="inventory-hint">Fluid used for new connections. Select a pipe on the canvas to change it.</p>
+          <div className="fluid-list" role="radiogroup" aria-label="Fluid for new connections">
+            {FLUIDS.map((fluid) => (
+              <button
+                key={fluid.key || "none"}
+                type="button"
+                role="radio"
+                aria-checked={activeFluid === fluid.key}
+                className={`fluid-option${activeFluid === fluid.key ? " is-active" : ""}`}
+                onClick={() => onFluidChange(fluid.key)}
+              >
+                <FluidSwatch fluid={fluid} />
+                {fluid.label}
+              </button>
             ))}
           </div>
-        </div>
+        </section>
       </div>
-    </>
+    </aside>
+  );
+}
+
+export function FluidSwatch({ fluid }) {
+  return (
+    <svg className="fluid-swatch" width="28" height="8" viewBox="0 0 28 8" aria-hidden="true">
+      <path
+        d="M2 4 H26"
+        fill="none"
+        stroke={fluid.key ? `var(--color-fl-${fluid.key})` : "var(--color-sc-pipe)"}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeDasharray={fluid.dashed ? "7 6" : undefined}
+      />
+    </svg>
   );
 }

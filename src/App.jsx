@@ -5,47 +5,29 @@ import ReactFlow, {
   useEdgesState,
   MarkerType
 } from "reactflow";
-import { Download, Upload, HelpCircle, Undo2, Redo2 } from "lucide-react";
+import {
+  Download,
+  FileScan,
+  HelpCircle,
+  PanelLeft,
+  RotateCcw,
+  Trash2,
+  Upload
+} from "lucide-react";
 import "reactflow/dist/style.css";
 
-import PumpNode from "./nodes/PumpNode";
-import TankNode from "./nodes/TankNode";
-import BiofilterNode from "./nodes/BiofilterNode";
-import ValveNode from "./nodes/ValveNode";
-import MotorNode from "./nodes/MotorNode";
-import ConeNode from "./nodes/ConeNode";
-import UVPanelNode from "./nodes/UVPanelNode";
-import CustomNode from "./nodes/CustomNode";
-import InventoryPanel from "./InventoryPanel";
-import HelpModal from "./HelpModal";
+import "./scada/scada.css";
 
-// Pipe styling
-const pipeStyles = `
-  .react-flow__edge-step {
-    stroke: #333;
-    stroke-width: 3;
-  }
-  .react-flow__edge-step:hover {
-    stroke: #0066cc;
-    stroke-width: 4;
-  }
-  .react-flow__edge-step.selected {
-    stroke: #0066cc !important;
-    stroke-width: 4 !important;
-  }
-  .react-flow__edge-smoothstep {
-    stroke: #666;
-    stroke-width: 2.5;
-  }
-  .react-flow__edge-smoothstep:hover {
-    stroke: #0066cc;
-    stroke-width: 3.5;
-  }
-  .react-flow__edge-smoothstep.selected {
-    stroke: #0066cc !important;
-    stroke-width: 3.5 !important;
-  }
-`;
+import EquipmentNode from "./nodes/EquipmentNode";
+import LabelNode from "./nodes/LabelNode";
+import OffPageNode from "./nodes/OffPageNode";
+import InventoryPanel from "./InventoryPanel";
+import InspectorPanel from "./InspectorPanel";
+import HelpModal from "./HelpModal";
+import PidImportModal from "./PidImportModal";
+import ExamplesMenu from "./ExamplesMenu";
+import { ELEMENTS, fluidClass } from "./scada/catalog";
+import { cleanDiagram, nextNodeId, uniqueEdgeId } from "./diagramIds";
 
 const generateRASLayout = (
   intakePumps,
@@ -134,14 +116,16 @@ const generateRASLayout = (
 
   xPos += horizontalSpacing;
 
-  // Section 5: Main Tank (center-bottom)
-  const tankId = "tank1";
-  newNodes.push({
-    id: tankId,
-    type: "tank",
-    position: { x: xPos, y: yPos + 50 },
-    data: { id: tankId, label: "Main Tank" }
-  });
+  // Section 5: Main Tank (center-bottom) - only if pressureTanks > 0
+  if (pressureTanks > 0) {
+    const tankId = "tank1";
+    newNodes.push({
+      id: tankId,
+      type: "tank",
+      position: { x: xPos, y: yPos + 50 },
+      data: { id: tankId, label: "Main Tank" }
+    });
+  }
 
   // Section 6: Oxygen Units (optional, branching down from tank)
   const oxygenNodeIds = [];
@@ -233,60 +217,59 @@ const generateRASLayout = (
     });
   }
 
-  // Biofilters -> Main Tank
-  for (let i = 0; i < bioNodeIds.length; i++) {
-    edges.push({
-      id: `e${bioNodeIds[i]}-${tankId}`,
-      source: bioNodeIds[i],
-      target: tankId,
-      type: "smoothstep"
-    });
-  }
+  // Biofilters -> Main Tank (only if Main Tank exists)
+  if (pressureTanks > 0) {
+    const tankId = "tank1";
+    for (let i = 0; i < bioNodeIds.length; i++) {
+      edges.push({
+        id: `e${bioNodeIds[i]}-${tankId}`,
+        source: bioNodeIds[i],
+        target: tankId,
+        type: "smoothstep"
+      });
+    }
 
-  // Main Tank -> Oxygen Units (if any)
-  for (let i = 0; i < oxygenNodeIds.length; i++) {
-    edges.push({
-      id: `e${tankId}-${oxygenNodeIds[i]}`,
-      source: tankId,
-      target: oxygenNodeIds[i],
-      type: "smoothstep"
-    });
-  }
+    // Main Tank -> Oxygen Units (if any)
+    for (let i = 0; i < oxygenNodeIds.length; i++) {
+      edges.push({
+        id: `e${tankId}-${oxygenNodeIds[i]}`,
+        source: tankId,
+        target: oxygenNodeIds[i],
+        type: "smoothstep"
+      });
+    }
 
-  // Oxygen/Tank -> Cones
-  const sourceForCones = oxygenNodeIds.length > 0 ? oxygenNodeIds[0] : tankId;
-  for (let i = 0; i < coneNodeIds.length; i++) {
-    edges.push({
-      id: `e${sourceForCones}-${coneNodeIds[i]}`,
-      source: sourceForCones,
-      target: coneNodeIds[i],
-      type: "smoothstep"
-    });
-  }
+    // Oxygen/Tank -> Cones
+    const sourceForCones = oxygenNodeIds.length > 0 ? oxygenNodeIds[0] : tankId;
+    for (let i = 0; i < coneNodeIds.length; i++) {
+      edges.push({
+        id: `e${sourceForCones}-${coneNodeIds[i]}`,
+        source: sourceForCones,
+        target: coneNodeIds[i],
+        type: "smoothstep"
+      });
+    }
 
-  // Cones -> Return Tanks
-  for (let i = 0; i < coneNodeIds.length; i++) {
-    const returnTankIdx = i % returnTankIds.length;
-    edges.push({
-      id: `e${coneNodeIds[i]}-${returnTankIds[returnTankIdx]}`,
-      source: coneNodeIds[i],
-      target: returnTankIds[returnTankIdx],
-      type: "smoothstep"
-    });
+    // Cones -> Return Tanks
+    for (let i = 0; i < coneNodeIds.length; i++) {
+      const returnTankIdx = i % returnTankIds.length;
+      edges.push({
+        id: `e${coneNodeIds[i]}-${returnTankIds[returnTankIdx]}`,
+        source: coneNodeIds[i],
+        target: returnTankIds[returnTankIdx],
+        type: "smoothstep"
+      });
+    }
   }
 
   return { newNodes, edges };
 };
 
+// Every library element renders through the same NJORD symbol node.
 const nodeTypes = {
-  pump: PumpNode,
-  tank: TankNode,
-  bio: BiofilterNode,
-  valve: ValveNode,
-  motor: MotorNode,
-  cone: ConeNode,
-  uv: UVPanelNode,
-  custom: CustomNode
+  ...Object.fromEntries(ELEMENTS.map((element) => [element.type, EquipmentNode])),
+  label: LabelNode,
+  offpage: OffPageNode
 };
 
 export default function App() {
@@ -304,12 +287,15 @@ export default function App() {
   const [multiSelectNodes, setMultiSelectNodes] = useState([]);
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
+  const [highlightedCounter, setHighlightedCounter] = useState(null);
+  const [activeFluid, setActiveFluid] = useState("");
+  const [pidOpen, setPidOpen] = useState(false);
+  const [flowInstance, setFlowInstance] = useState(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   
   const isInitialized = useRef(false);
-  const elementCounterRef = useRef({});
   const isUndoRedoing = useRef(false);
   const previousEdgesLengthRef = useRef(0);
 
@@ -439,7 +425,8 @@ export default function App() {
 
       const pos = positions[type];
       for (let i = currentCount + 1; i <= newCount; i++) {
-        const id = `${type}${i}`;
+        const taken = [...nodes, ...newNodesToAdd];
+        const id = taken.some((node) => node.id === `${type}${i}`) ? nextNodeId(type, taken) : `${type}${i}`;
         let position;
         if (type === "oxygen") {
           const col = (i - 1) % pos.cols;
@@ -526,7 +513,85 @@ export default function App() {
   };
 
   const onConnect = useCallback((connection) => {
-    setEdges((eds) => [...eds, { ...connection, id: `e${connection.source}-${connection.target}`, type: "step" }]);
+    setEdges((eds) => {
+      const exists = eds.some(
+        (edge) =>
+          edge.source === connection.source &&
+          edge.target === connection.target &&
+          (edge.sourceHandle ?? null) === (connection.sourceHandle ?? null) &&
+          (edge.targetHandle ?? null) === (connection.targetHandle ?? null)
+      );
+      if (exists) return eds;
+      return [
+      ...eds,
+      {
+        ...connection,
+        id: uniqueEdgeId(connection.source, connection.target, eds),
+        type: "step",
+        className: fluidClass(activeFluid),
+        data: { fluid: activeFluid }
+      }
+      ];
+    });
+  }, [setEdges, activeFluid]);
+
+  // Inspector edits write straight into node and edge data, so they export with the diagram
+  const updateNodeData = useCallback((nodeId, patch) => {
+    setNodes((nds) => nds.map((node) => (node.id === nodeId ? { ...node, data: { ...node.data, ...patch } } : node)));
+  }, [setNodes]);
+
+  const updateEdgeFluid = useCallback((edgeId, fluid) => {
+    setEdges((eds) =>
+      eds.map((edge) =>
+        edge.id === edgeId ? { ...edge, className: fluidClass(fluid), data: { ...edge.data, fluid } } : edge
+      )
+    );
+  }, [setEdges]);
+
+  const resolveEdgeReview = useCallback((edgeId) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (edge.id !== edgeId) return edge;
+        const { review: _review, ...data } = edge.data ?? {};
+        return { ...edge, className: fluidClass(data.fluid), data };
+      })
+    );
+  }, [setEdges]);
+
+  // Automatic mode: place a P&ID conversion on the canvas and keep the equipment counters in step
+  const handlePidApply = useCallback(({ nodes: newNodes, edges: newEdges, counts }, placement) => {
+    const replace = placement === "replace";
+    const counters = [
+      ["pump", setIntakePumps],
+      ["motor", setMotorCount],
+      ["valve", setValveCount],
+      ["bio", setBioFilters],
+      ["oxygen", setOxygenUnits],
+      ["tank", setPressureTanks],
+      ["cone", setConeCount]
+    ];
+    for (const [type, setCount] of counters) {
+      setCount((current) => (replace ? 0 : current) + (counts[type] ?? 0));
+    }
+    const combined = cleanDiagram(replace ? newNodes : [...nodes, ...newNodes], replace ? newEdges : [...edges, ...newEdges]);
+    setNodes(combined.nodes);
+    setEdges(combined.edges);
+    setSelectedElement(null);
+    setSelectedEdge(null);
+    // Wait for React Flow to measure the new nodes before fitting them in view
+    setTimeout(() => flowInstance?.fitView({ padding: 0.15, duration: 300 }), 250);
+  }, [nodes, edges, setNodes, setEdges, flowInstance]);
+
+  const handleLoadExample = (example) => {
+    if (nodes.length > 0 && !window.confirm(`Replace the current diagram with the "${example.name}" example?`)) return;
+    const diagram = example.build();
+    const counts = diagram.nodes.reduce((count, node) => ({ ...count, [node.type]: (count[node.type] ?? 0) + 1 }), {});
+    handlePidApply({ ...diagram, counts }, "replace");
+  };
+
+  const deleteEdge = useCallback((edgeId) => {
+    setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+    setSelectedEdge(null);
   }, [setEdges]);
 
   // Handle drag over canvas
@@ -547,23 +612,15 @@ export default function App() {
     }
 
     const bounds = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - bounds.left;
-    const y = e.clientY - bounds.top;
+    // Drop where the pointer is on the canvas, whatever the zoom and pan
+    const position = flowInstance
+      ? flowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      : { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
 
-    // Position calculated from viewport (simplified without reactFlowInstance)
-    // Adjust as needed based on actual zoom/pan state
-    const position = { x, y };
-
-    // Generate unique ID for new element
+    // Next free id for this type, so a symbol deleted earlier never leaves a clash behind
     const typeKey = elementData.type;
-    if (!elementCounterRef.current[typeKey]) {
-      elementCounterRef.current[typeKey] = nodes.filter((n) => n.type === typeKey).length + 1;
-    } else {
-      elementCounterRef.current[typeKey]++;
-    }
-
-    const newId = `${typeKey}${elementCounterRef.current[typeKey]}`;
-    const label = `${elementData.label} ${elementCounterRef.current[typeKey]}`;
+    const newId = nextNodeId(typeKey, nodes);
+    const label = `${elementData.label} ${newId.slice(typeKey.length)}`;
 
     const newNode = {
       id: newId,
@@ -576,31 +633,42 @@ export default function App() {
     saveToHistory();
 
     // Update the count state based on the dropped element type
+    // and highlight the corresponding counter
     switch (typeKey) {
       case "pump":
+        setHighlightedCounter("pump");
         setIntakePumps((prev) => prev + 1);
         break;
       case "motor":
+        setHighlightedCounter("motor");
         setMotorCount((prev) => prev + 1);
         break;
       case "valve":
+        setHighlightedCounter("valve");
         setValveCount((prev) => prev + 1);
         break;
       case "bio":
+        setHighlightedCounter("bio");
         setBioFilters((prev) => prev + 1);
         break;
       case "oxygen":
+        setHighlightedCounter("oxygen");
         setOxygenUnits((prev) => prev + 1);
         break;
       case "cone":
+        setHighlightedCounter("cone");
         setConeCount((prev) => prev + 1);
         break;
       case "tank":
+        setHighlightedCounter("tank");
         setPressureTanks((prev) => prev + 1);
         break;
       default:
         break;
     }
+
+    // Remove highlight after animation completes
+    setTimeout(() => setHighlightedCounter(null), 600);
   };
 
   // Handle node click with Shift for multi-selection
@@ -631,9 +699,9 @@ export default function App() {
 
   // Create a pipe connection between two nodes
   const createPipeConnection = (sourceId, targetId) => {
-    const edgeId = `e${sourceId}-${targetId}`;
-    // Check if edge already exists
-    if (edges.some((e) => e.id === edgeId)) return;
+    // One Shift + click pipe per pair of symbols
+    if (edges.some((e) => e.source === sourceId && e.target === targetId)) return;
+    const edgeId = uniqueEdgeId(sourceId, targetId, edges);
 
     setEdges((eds) => [
       ...eds,
@@ -642,7 +710,9 @@ export default function App() {
         source: sourceId,
         target: targetId,
         type: "smoothstep",
-        markerEnd: { type: MarkerType.ArrowClosed }
+        markerEnd: { type: MarkerType.ArrowClosed },
+        className: fluidClass(activeFluid),
+        data: { fluid: activeFluid }
       }
     ]);
     saveToHistory();
@@ -732,8 +802,9 @@ export default function App() {
           setMotorCount(designData.config.motorCount);
           setValveCount(designData.config.valveCount);
           setConeCount(designData.config.coneCount);
-          setNodes(designData.nodes);
-          setEdges(designData.edges);
+          const design = cleanDiagram(designData.nodes, designData.edges);
+          setNodes(design.nodes);
+          setEdges(design.edges);
           setSelectedElement(null);
           setSelectedEdge(null);
         } catch (error) {
@@ -743,6 +814,26 @@ export default function App() {
       reader.readAsText(file);
     };
     input.click();
+  };
+
+  // Reset positions only (keep counts and element counts)
+  const handleResetPositions = () => {
+    const { newNodes, edges: newEdges } = generateRASLayout(
+      intakePumps,
+      bioFilters,
+      oxygenUnits,
+      pressureTanks,
+      motorCount,
+      valveCount,
+      coneCount
+    );
+    const nodesWithSelection = newNodes.map((node) => ({
+      ...node,
+      data: { ...node.data, isSelected: false }
+    }));
+    setNodes(nodesWithSelection);
+    setEdges(newEdges);
+    setSelectedElement(null);
   };
 
   // Save layout as default (to localStorage)
@@ -777,12 +868,13 @@ export default function App() {
         setMotorCount(layoutData.config.motorCount);
         setValveCount(layoutData.config.valveCount);
         setConeCount(layoutData.config.coneCount);
-        const nodesWithSelection = layoutData.nodes.map((node) => ({
+        const layout = cleanDiagram(layoutData.nodes, layoutData.edges);
+        const nodesWithSelection = layout.nodes.map((node) => ({
           ...node,
           data: { ...node.data, isSelected: false }
         }));
         setNodes(nodesWithSelection);
-        setEdges(layoutData.edges);
+        setEdges(layout.edges);
         isInitialized.current = true;
       } catch (error) {
         console.error("Error loading saved layout:", error);
@@ -790,210 +882,124 @@ export default function App() {
     }
   }, []);
 
+  const componentCounts = [
+    { label: "Pumps", value: intakePumps, onChange: handleIntakePumpsChange, key: "pump" },
+    { label: "Motors", value: motorCount, onChange: handleMotorCountChange, key: "motor" },
+    { label: "Valves", value: valveCount, onChange: handleValveCountChange, key: "valve" },
+    { label: "Biofilters", value: bioFilters, onChange: handleBioFiltersChange, key: "bio" },
+    { label: "O₂ units", value: oxygenUnits, onChange: handleOxygenUnitsChange, key: "oxygen" },
+    { label: "Tanks", value: pressureTanks, onChange: handlePressureTanksChange, key: "tank" },
+    { label: "Cones", value: coneCount, onChange: handleConeCountChange, key: "cone" }
+  ];
+
   return (
-    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column" }}>
-      <style>{pipeStyles}</style>
-      
-      {/* Minimal Control Panel */}
-      <div
-        style={{
-          backgroundColor: "#f5f5f5",
-          padding: "10px 12px",
-          borderBottom: "1px solid #ddd",
-          display: "flex",
-          gap: "12px",
-          alignItems: "center",
-          flexWrap: "wrap",
-          fontSize: "12px"
-        }}
-      >
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          {[
-            { label: "Pumps", value: intakePumps, onChange: handleIntakePumpsChange },
-            { label: "Motors", value: motorCount, onChange: handleMotorCountChange },
-            { label: "Valves", value: valveCount, onChange: handleValveCountChange },
-            { label: "Biofilters", value: bioFilters, onChange: handleBioFiltersChange },
-            { label: "Tanks", value: pressureTanks, onChange: handlePressureTanksChange },
-            { label: "Cones", value: coneCount, onChange: handleConeCountChange }
-          ].map((item) => (
-            <div key={item.label} style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-              <label style={{ whiteSpace: "nowrap", fontWeight: "bold" }}>{item.label}:</label>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                value={item.value}
-                onChange={(e) => item.onChange(parseInt(e.target.value) || 0)}
-                style={{
-                  padding: "4px",
-                  borderRadius: "3px",
-                  border: "1px solid #999",
-                  width: "35px",
-                  fontSize: "12px"
-                }}
-              />
-            </div>
-          ))}
+    <main className="editor-shell">
+      <header className="app-header">
+        <div className="brand-lockup">
+          <div className="brand-mark" aria-hidden="true">SG</div>
+          <div className="brand-copy">
+            <span className="brand-name">SCADA Generator</span>
+            <span className="brand-subtitle">Process editor</span>
+          </div>
+        </div>
+        <span className="header-context">RAS system · Diagram workspace</span>
+      </header>
+
+      <section className="editor-toolbar" aria-label="Diagram controls">
+        <div className="toolbar-main">
+          <button
+            type="button"
+            className={`toolbar-button${inventoryOpen ? " toolbar-button--active" : ""}`}
+            onClick={() => setInventoryOpen((open) => !open)}
+            aria-expanded={inventoryOpen}
+            aria-controls="inventory-panel"
+          >
+            <PanelLeft size={15} strokeWidth={1.8} />
+            Elements
+          </button>
+          <button
+            type="button"
+            className="toolbar-button"
+            onClick={() => setPidOpen(true)}
+            title="Generate a SCADA overview from an engineering P&ID"
+          >
+            <FileScan size={15} strokeWidth={1.8} />
+            Import P&amp;ID
+          </button>
+          <ExamplesMenu onLoad={handleLoadExample} />
+
+          <span className="toolbar-divider" aria-hidden="true" />
+          <span className="toolbar-label">Equipment count</span>
+          <div className="counter-group">
+            {componentCounts.map((item) => (
+              <label className="element-counter" key={item.key}>
+                <span className="counter-label">{item.label}</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={item.value}
+                  onChange={(event) => item.onChange(parseInt(event.target.value, 10) || 0)}
+                  className={highlightedCounter === item.key ? "counter-pulse" : ""}
+                  aria-label={`${item.label} count`}
+                />
+              </label>
+            ))}
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="toolbar-actions">
           <button
-            onClick={handleSaveLayout}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "#27ae60",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: "bold",
-              whiteSpace: "nowrap"
-            }}
-            title="Save current layout as default"
-          >
-            Save Layout
-          </button>
-
-          <button
-            onClick={handleClearAll}
-            style={{
-              padding: "6px 12px",
-              backgroundColor: "transparent",
-              color: "#e74c3c",
-              border: "1px solid #e74c3c",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: "bold",
-              whiteSpace: "nowrap"
-            }}
-            title="Clear all nodes and edges"
-          >
-            Clear All
-          </button>
-
-          {/* <button
-            onClick={handleUndo}
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: historyStep > 0 ? "pointer" : "not-allowed",
-              opacity: historyStep > 0 ? 0.6 : 0.3,
-              transition: "opacity 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0
-            }}
-            title="Undo"
-            onMouseEnter={(e) => { if (historyStep > 0) e.currentTarget.style.opacity = "1"; }}
-            onMouseLeave={(e) => { if (historyStep > 0) e.currentTarget.style.opacity = "0.6"; }}
-          >
-            <Undo2 size={20} color="#3a3a3a" strokeWidth={2} />
-          </button>
-
-          <button
-            onClick={handleRedo}
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: historyStep < history.length - 1 ? "pointer" : "not-allowed",
-              opacity: historyStep < history.length - 1 ? 0.6 : 0.3,
-              transition: "opacity 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0
-            }}
-            title="Redo"
-            onMouseEnter={(e) => { if (historyStep < history.length - 1) e.currentTarget.style.opacity = "1"; }}
-            onMouseLeave={(e) => { if (historyStep < history.length - 1) e.currentTarget.style.opacity = "0.6"; }}
-          >
-            <Redo2 size={20} color="#3a3a3a" strokeWidth={2} />
-          </button> */}
-        </div>
-
-        <div style={{ marginLeft: "auto", fontSize: "11px", color: "#666" }}>
-          💡 Shift+Click to connect | Drag handles to create pipes | Click pipes to select/delete
-        </div>
-
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <button
-            onClick={() => setHelpOpen(true)}
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              opacity: 0.5,
-              transition: "opacity 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0
-            }}
-            title="Help & Instructions"
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
-          >
-            <HelpCircle size={20} color="#555" strokeWidth={2} />
-          </button>
-
-          <button
+            type="button"
+            className="toolbar-button toolbar-button--primary"
             onClick={handleExport}
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              opacity: 0.6,
-              transition: "opacity 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0
-            }}
-            title="Download as JSON"
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+            title="Download diagram as JSON"
           >
-            <Download size={20} color="#3a3a3a" strokeWidth={2} />
+            <Download size={14} strokeWidth={1.8} />
+            Export
           </button>
-
           <button
+            type="button"
+            className="toolbar-button"
             onClick={handleImport}
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              opacity: 0.6,
-              transition: "opacity 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0
-            }}
-            title="Import from JSON"
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+            title="Import diagram from JSON"
           >
-            <Upload size={20} color="#3a3a3a" strokeWidth={2} />
+            <Upload size={14} strokeWidth={1.8} />
+            Import
+          </button>
+          <button
+            type="button"
+            className="toolbar-button"
+            onClick={handleResetPositions}
+            title="Restore the default positions and connections"
+          >
+            <RotateCcw size={14} strokeWidth={1.8} />
+            Reset layout
+          </button>
+          <button
+            type="button"
+            className="toolbar-button toolbar-button--quiet-danger"
+            onClick={handleClearAll}
+            title="Remove all elements from the diagram"
+          >
+            <Trash2 size={14} strokeWidth={1.8} />
+            Clear
+          </button>
+          <button
+            type="button"
+            className="toolbar-button"
+            onClick={() => setHelpOpen(true)}
+            title="Help and instructions"
+          >
+            <HelpCircle size={15} strokeWidth={1.8} />
+            Help
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* React Flow Canvas */}
-      <div
-        style={{ flex: 1 }}
+      <section
+        className="canvas-stage"
+        aria-label="Process diagram canvas"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
@@ -1007,14 +1013,43 @@ export default function App() {
           onEdgeClick={handleEdgeClick}
           onPaneClick={handleCanvasClick}
           nodeTypes={nodeTypes}
+          onInit={setFlowInstance}
           fitView
         >
-          <Background />
+          <Background color="var(--grid-dot)" gap={24} size={1} />
         </ReactFlow>
-      </div>
+        <div className="canvas-status" aria-live="polite">
+          <span className="canvas-meta">
+            <strong>{nodes.filter((node) => node.type !== "label").length}</strong> equipment
+            <span aria-hidden="true">·</span>
+            <strong>{edges.length}</strong> connections
+          </span>
+          <span className="canvas-meta">Shift + click to connect</span>
+        </div>
+        <InventoryPanel
+          isOpen={inventoryOpen}
+          onToggle={() => setInventoryOpen(false)}
+          activeFluid={activeFluid}
+          onFluidChange={setActiveFluid}
+        />
+        <InspectorPanel
+          node={nodes.find((node) => node.id === selectedElement)}
+          edge={edges.find((edge) => edge.id === selectedEdge)}
+          onNodeChange={updateNodeData}
+          onEdgeFluidChange={updateEdgeFluid}
+          onEdgeDelete={deleteEdge}
+          onEdgeResolve={resolveEdgeReview}
+          onClose={handleCanvasClick}
+        />
+      </section>
 
-      <InventoryPanel isOpen={inventoryOpen} onToggle={() => setInventoryOpen(!inventoryOpen)} />
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
-    </div>
+      <PidImportModal
+        isOpen={pidOpen}
+        onClose={() => setPidOpen(false)}
+        existingNodes={nodes}
+        onApply={handlePidApply}
+      />
+    </main>
   );
 }

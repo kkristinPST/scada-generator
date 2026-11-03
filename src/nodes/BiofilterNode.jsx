@@ -37,9 +37,9 @@ export default function BiofilterNode({ data, isConnectable }) {
         style={{ margin: "4px auto", display: "block" }}
       >
         {/* Biofilter simplified circle */}
-        <circle cx="30" cy="30" r="22" fill="none" stroke="#16a34a" strokeWidth="2" />
-        <circle cx="30" cy="30" r="18" fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.5" />
-        <circle cx="30" cy="30" r="10" fill="none" stroke="#16a34a" strokeWidth="1" opacity="0.3" />
+        <circle cx="30" cy="30" r="22" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="30" cy="30" r="18" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+        <circle cx="30" cy="30" r="10" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3" />
       </svg>
 
       {isEditing ? (
