@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import ReactFlow, {
   Background,
   useNodesState,
@@ -26,244 +26,31 @@ import InspectorPanel from "./InspectorPanel";
 import HelpModal from "./HelpModal";
 import PidImportModal from "./PidImportModal";
 import ExamplesMenu from "./ExamplesMenu";
+import { EXAMPLES } from "./examples";
 import { ELEMENTS, fluidClass } from "./scada/catalog";
 import { cleanDiagram, nextNodeId, uniqueEdgeId } from "./diagramIds";
 
-const generateRASLayout = (
-  intakePumps,
-  bioFilters,
-  oxygenUnits,
-  pressureTanks,
-  motorCount,
-  valveCount,
-  coneCount
-) => {
-  const newNodes = [];
-  const edges = [];
+// What each equipment counter in the toolbar counts.
+const COUNTED_TYPES = ["pump", "motor", "valve", "bio", "oxygen", "tank", "cone"];
 
-  // Reasonable flow layout:
-  // Motor -> Pump -> Valve -> Biofilter -> Tank -> Cone -> Return Tank
-  // (with optional oxygen units branching from tank)
+const countByType = (nodes) =>
+  Object.fromEntries(COUNTED_TYPES.map((type) => [type, nodes.filter((node) => node.type === type).length]));
 
-  let xPos = 50;
-  let yPos = 150;
-  const horizontalSpacing = 280;
-  const verticalSpacing = 100;
+// Everything that makes a diagram different, and nothing that only reflects the view (selection, measured size).
+const diagramSignature = (nodes, edges) =>
+  JSON.stringify([
+    nodes.map((node) => [node.id, node.type, Math.round(node.position.x), Math.round(node.position.y), { ...node.data, isSelected: undefined }]),
+    edges.map((edge) => [edge.id, edge.source, edge.target, edge.sourceHandle ?? null, edge.targetHandle ?? null, edge.className ?? "", edge.data ?? null])
+  ]);
 
-  // Section 1: Motors (left column, top)
-  const motorNodeIds = [];
-  let motorYPos = yPos - 150;
-  for (let i = 1; i <= motorCount; i++) {
-    const id = `motor${i}`;
-    newNodes.push({
-      id,
-      type: "motor",
-      position: { x: xPos, y: motorYPos },
-      data: { id, label: `Motor ${i}` }
-    });
-    motorNodeIds.push(id);
-    motorYPos += verticalSpacing;
-  }
+// A diagram ready for the canvas: ids made unique, nothing selected, counters derived from it.
+function prepareDiagram({ nodes, edges }, label, counts) {
+  const clean = cleanDiagram(nodes, edges);
+  const prepared = clean.nodes.map((node) => ({ ...node, data: { ...node.data, isSelected: false } }));
+  return { nodes: prepared, edges: clean.edges, counts: counts ?? countByType(prepared), label };
+}
 
-  // Section 2: Intake Pumps
-  const pumpNodeIds = [];
-  let pumpYPos = yPos;
-  for (let i = 1; i <= intakePumps; i++) {
-    const id = `pump${i}`;
-    newNodes.push({
-      id,
-      type: "pump",
-      position: { x: xPos, y: pumpYPos },
-      data: { id, label: `Pump ${i}` }
-    });
-    pumpNodeIds.push(id);
-    pumpYPos += verticalSpacing;
-  }
-
-  xPos += horizontalSpacing;
-
-  // Section 3: Valves
-  const valveNodeIds = [];
-  let valveYPos = yPos;
-  for (let i = 1; i <= valveCount; i++) {
-    const id = `valve${i}`;
-    newNodes.push({
-      id,
-      type: "valve",
-      position: { x: xPos, y: valveYPos },
-      data: { id, label: `Valve ${i}` }
-    });
-    valveNodeIds.push(id);
-    valveYPos += verticalSpacing;
-  }
-
-  xPos += horizontalSpacing;
-
-  // Section 4: Biofilters
-  const bioNodeIds = [];
-  let bioYPos = yPos;
-  for (let i = 1; i <= bioFilters; i++) {
-    const id = `bio${i}`;
-    newNodes.push({
-      id,
-      type: "bio",
-      position: { x: xPos, y: bioYPos },
-      data: { id, label: `Biofilter ${i}` }
-    });
-    bioNodeIds.push(id);
-    bioYPos += verticalSpacing;
-  }
-
-  xPos += horizontalSpacing;
-
-  // Section 5: Main Tank (center-bottom) - only if pressureTanks > 0
-  if (pressureTanks > 0) {
-    const tankId = "tank1";
-    newNodes.push({
-      id: tankId,
-      type: "tank",
-      position: { x: xPos, y: yPos + 50 },
-      data: { id: tankId, label: "Main Tank" }
-    });
-  }
-
-  // Section 6: Oxygen Units (optional, branching down from tank)
-  const oxygenNodeIds = [];
-  if (oxygenUnits > 0) {
-    const oxyXPos = xPos + horizontalSpacing * 0.5;
-    const oxyYPos = yPos + 250;
-    const oxygenCols = Math.ceil(Math.sqrt(oxygenUnits));
-
-    for (let i = 1; i <= oxygenUnits; i++) {
-      const id = `oxygen${i}`;
-      const col = (i - 1) % oxygenCols;
-      const row = Math.floor((i - 1) / oxygenCols);
-
-      newNodes.push({
-        id,
-        type: "oxygen",
-        position: {
-          x: oxyXPos + col * 120,
-          y: oxyYPos + row * 100
-        },
-        data: { id, label: `O₂ ${i}` }
-      });
-      oxygenNodeIds.push(id);
-    }
-  }
-
-  xPos += horizontalSpacing;
-
-  // Section 7: Cones (Settlement tanks)
-  const coneNodeIds = [];
-  let coneYPos = yPos + 50;
-  for (let i = 1; i <= coneCount; i++) {
-    const id = `cone${i}`;
-    newNodes.push({
-      id,
-      type: "cone",
-      position: { x: xPos, y: coneYPos },
-      data: { id, label: `Cone ${i}` }
-    });
-    coneNodeIds.push(id);
-    coneYPos += verticalSpacing;
-  }
-
-  xPos += horizontalSpacing;
-
-  // Section 8: Return Tanks
-  const returnTankIds = [];
-  let returnYPos = yPos + 50;
-  for (let i = 1; i <= pressureTanks; i++) {
-    const id = `ptank${i}`;
-    newNodes.push({
-      id,
-      type: "tank",
-      position: { x: xPos, y: returnYPos },
-      data: { id, label: `Return Tank ${i}` }
-    });
-    returnTankIds.push(id);
-    returnYPos += verticalSpacing;
-  }
-
-  // Create connections
-  // Motors -> Pumps
-  for (let i = 0; i < Math.min(motorNodeIds.length, pumpNodeIds.length); i++) {
-    edges.push({
-      id: `e${motorNodeIds[i]}-${pumpNodeIds[i]}`,
-      source: motorNodeIds[i],
-      target: pumpNodeIds[i],
-      type: "smoothstep"
-    });
-  }
-
-  // Pumps -> Valves
-  for (let i = 0; i < Math.min(pumpNodeIds.length, valveNodeIds.length); i++) {
-    edges.push({
-      id: `e${pumpNodeIds[i]}-${valveNodeIds[i]}`,
-      source: pumpNodeIds[i],
-      target: valveNodeIds[i],
-      type: "smoothstep"
-    });
-  }
-
-  // Valves -> Biofilters
-  for (let i = 0; i < Math.min(valveNodeIds.length, bioNodeIds.length); i++) {
-    edges.push({
-      id: `e${valveNodeIds[i]}-${bioNodeIds[i]}`,
-      source: valveNodeIds[i],
-      target: bioNodeIds[i],
-      type: "smoothstep"
-    });
-  }
-
-  // Biofilters -> Main Tank (only if Main Tank exists)
-  if (pressureTanks > 0) {
-    const tankId = "tank1";
-    for (let i = 0; i < bioNodeIds.length; i++) {
-      edges.push({
-        id: `e${bioNodeIds[i]}-${tankId}`,
-        source: bioNodeIds[i],
-        target: tankId,
-        type: "smoothstep"
-      });
-    }
-
-    // Main Tank -> Oxygen Units (if any)
-    for (let i = 0; i < oxygenNodeIds.length; i++) {
-      edges.push({
-        id: `e${tankId}-${oxygenNodeIds[i]}`,
-        source: tankId,
-        target: oxygenNodeIds[i],
-        type: "smoothstep"
-      });
-    }
-
-    // Oxygen/Tank -> Cones
-    const sourceForCones = oxygenNodeIds.length > 0 ? oxygenNodeIds[0] : tankId;
-    for (let i = 0; i < coneNodeIds.length; i++) {
-      edges.push({
-        id: `e${sourceForCones}-${coneNodeIds[i]}`,
-        source: sourceForCones,
-        target: coneNodeIds[i],
-        type: "smoothstep"
-      });
-    }
-
-    // Cones -> Return Tanks
-    for (let i = 0; i < coneNodeIds.length; i++) {
-      const returnTankIdx = i % returnTankIds.length;
-      edges.push({
-        id: `e${coneNodeIds[i]}-${returnTankIds[returnTankIdx]}`,
-        source: coneNodeIds[i],
-        target: returnTankIds[returnTankIdx],
-        type: "smoothstep"
-      });
-    }
-  }
-
-  return { newNodes, edges };
-};
+const createStartDiagram = () => prepareDiagram(EXAMPLES[0].build(), `the "${EXAMPLES[0].name}" example`);
 
 // Every library element renders through the same NJORD symbol node.
 const nodeTypes = {
@@ -273,13 +60,15 @@ const nodeTypes = {
 };
 
 export default function App() {
-  const [intakePumps, setIntakePumps] = useState(1);
-  const [bioFilters, setBioFilters] = useState(1);
-  const [oxygenUnits, setOxygenUnits] = useState(0);
-  const [pressureTanks, setPressureTanks] = useState(1);
-  const [motorCount, setMotorCount] = useState(1);
-  const [valveCount, setValveCount] = useState(1);
-  const [coneCount, setConeCount] = useState(1);
+  // What Reset returns to: the diagram exactly as it was last loaded (example, import or Clear)
+  const [baseline, setBaseline] = useState(createStartDiagram);
+  const [intakePumps, setIntakePumps] = useState(baseline.counts.pump);
+  const [bioFilters, setBioFilters] = useState(baseline.counts.bio);
+  const [oxygenUnits, setOxygenUnits] = useState(baseline.counts.oxygen);
+  const [pressureTanks, setPressureTanks] = useState(baseline.counts.tank);
+  const [motorCount, setMotorCount] = useState(baseline.counts.motor);
+  const [valveCount, setValveCount] = useState(baseline.counts.valve);
+  const [coneCount, setConeCount] = useState(baseline.counts.cone);
   const [selectedElement, setSelectedElement] = useState(null);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -292,10 +81,9 @@ export default function App() {
   const [pidOpen, setPidOpen] = useState(false);
   const [flowInstance, setFlowInstance] = useState(null);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  
-  const isInitialized = useRef(false);
+  const [nodes, setNodes, onNodesChange] = useNodesState(baseline.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(baseline.edges);
+
   const isUndoRedoing = useRef(false);
   const previousEdgesLengthRef = useRef(0);
 
@@ -360,44 +148,42 @@ export default function App() {
     }
   }, [historyStep, history]);
 
-  // Clear all nodes and edges
+  // Put a whole diagram on the canvas and remember it as the point Reset returns to
+  const loadDiagram = useCallback((diagram) => {
+    setIntakePumps(diagram.counts.pump ?? 0);
+    setBioFilters(diagram.counts.bio ?? 0);
+    setOxygenUnits(diagram.counts.oxygen ?? 0);
+    setPressureTanks(diagram.counts.tank ?? 0);
+    setMotorCount(diagram.counts.motor ?? 0);
+    setValveCount(diagram.counts.valve ?? 0);
+    setConeCount(diagram.counts.cone ?? 0);
+    setNodes(diagram.nodes);
+    setEdges(diagram.edges);
+    setBaseline(diagram);
+    setSelectedElement(null);
+    setSelectedEdge(null);
+    setMultiSelectNodes([]);
+    // Wait for React Flow to measure the new nodes before fitting them in view
+    setTimeout(() => flowInstance?.fitView({ padding: 0.15, duration: 300 }), 250);
+  }, [setNodes, setEdges, flowInstance]);
+
+  const isDirty = useMemo(
+    () => diagramSignature(nodes, edges) !== diagramSignature(baseline.nodes, baseline.edges),
+    [nodes, edges, baseline]
+  );
+
+  // Clear all nodes and edges; an empty canvas becomes the reset point
   const handleClearAll = useCallback(() => {
     if (window.confirm("Are you sure you want to clear everything?")) {
-      setNodes([]);
-      setEdges([]);
-      setIntakePumps(0);
-      setBioFilters(0);
-      setOxygenUnits(0);
-      setPressureTanks(0);
-      setMotorCount(0);
-      setValveCount(0);
-      setConeCount(0);
-      setSelectedElement(null);
-      setSelectedEdge(null);
+      loadDiagram(prepareDiagram({ nodes: [], edges: [] }, "an empty canvas"));
     }
-  }, []);
+  }, [loadDiagram]);
 
-  // Initialize layout only on first render
-  useEffect(() => {
-    if (!isInitialized.current) {
-      const { newNodes, edges: newEdges } = generateRASLayout(
-        intakePumps,
-        bioFilters,
-        oxygenUnits,
-        pressureTanks,
-        motorCount,
-        valveCount,
-        coneCount
-      );
-      const nodesWithSelection = newNodes.map((node) => ({
-        ...node,
-        data: { ...node.data, isSelected: false }
-      }));
-      setNodes(nodesWithSelection);
-      setEdges(newEdges);
-      isInitialized.current = true;
-    }
-  }, []);
+  // Go back to the diagram as it was last loaded, discarding every change since
+  const handleReset = () => {
+    if (!isDirty || !window.confirm(`Discard your changes and go back to ${baseline.label}?`)) return;
+    loadDiagram(baseline);
+  };
 
   // Update selection state in nodes
   useEffect(() => {
@@ -492,26 +278,6 @@ export default function App() {
     setPressureTanks(value);
   };
 
-  // Reset to initial layout
-  const resetLayout = () => {
-    const { newNodes, edges: newEdges } = generateRASLayout(
-      intakePumps,
-      bioFilters,
-      oxygenUnits,
-      pressureTanks,
-      motorCount,
-      valveCount,
-      coneCount
-    );
-    const nodesWithSelection = newNodes.map((node) => ({
-      ...node,
-      data: { ...node.data, isSelected: false }
-    }));
-    setNodes(nodesWithSelection);
-    setEdges(newEdges);
-    setSelectedElement(null);
-  };
-
   const onConnect = useCallback((connection) => {
     setEdges((eds) => {
       const exists = eds.some(
@@ -559,34 +325,15 @@ export default function App() {
   }, [setEdges]);
 
   // Automatic mode: place a P&ID conversion on the canvas and keep the equipment counters in step
-  const handlePidApply = useCallback(({ nodes: newNodes, edges: newEdges, counts }, placement) => {
+  const handlePidApply = useCallback(({ nodes: newNodes, edges: newEdges }, placement) => {
     const replace = placement === "replace";
-    const counters = [
-      ["pump", setIntakePumps],
-      ["motor", setMotorCount],
-      ["valve", setValveCount],
-      ["bio", setBioFilters],
-      ["oxygen", setOxygenUnits],
-      ["tank", setPressureTanks],
-      ["cone", setConeCount]
-    ];
-    for (const [type, setCount] of counters) {
-      setCount((current) => (replace ? 0 : current) + (counts[type] ?? 0));
-    }
-    const combined = cleanDiagram(replace ? newNodes : [...nodes, ...newNodes], replace ? newEdges : [...edges, ...newEdges]);
-    setNodes(combined.nodes);
-    setEdges(combined.edges);
-    setSelectedElement(null);
-    setSelectedEdge(null);
-    // Wait for React Flow to measure the new nodes before fitting them in view
-    setTimeout(() => flowInstance?.fitView({ padding: 0.15, duration: 300 }), 250);
-  }, [nodes, edges, setNodes, setEdges, flowInstance]);
+    const combined = { nodes: replace ? newNodes : [...nodes, ...newNodes], edges: replace ? newEdges : [...edges, ...newEdges] };
+    loadDiagram(prepareDiagram(combined, "the P&ID import result"));
+  }, [nodes, edges, loadDiagram]);
 
   const handleLoadExample = (example) => {
-    if (nodes.length > 0 && !window.confirm(`Replace the current diagram with the "${example.name}" example?`)) return;
-    const diagram = example.build();
-    const counts = diagram.nodes.reduce((count, node) => ({ ...count, [node.type]: (count[node.type] ?? 0) + 1 }), {});
-    handlePidApply({ ...diagram, counts }, "replace");
+    if (isDirty && !window.confirm(`Replace the current diagram with the "${example.name}" example? Your changes will be lost.`)) return;
+    loadDiagram(prepareDiagram(example.build(), `the "${example.name}" example`));
   };
 
   const deleteEdge = useCallback((edgeId) => {
@@ -795,18 +542,18 @@ export default function App() {
       reader.onload = (event) => {
         try {
           const designData = JSON.parse(event.target?.result);
-          setIntakePumps(designData.config.intakePumps);
-          setBioFilters(designData.config.bioFilters);
-          setOxygenUnits(designData.config.oxygenUnits);
-          setPressureTanks(designData.config.pressureTanks);
-          setMotorCount(designData.config.motorCount);
-          setValveCount(designData.config.valveCount);
-          setConeCount(designData.config.coneCount);
-          const design = cleanDiagram(designData.nodes, designData.edges);
-          setNodes(design.nodes);
-          setEdges(design.edges);
-          setSelectedElement(null);
-          setSelectedEdge(null);
+          const config = designData.config;
+          // Keep the counters the file was saved with; older files without them count the symbols
+          const counts = config && {
+            pump: config.intakePumps,
+            bio: config.bioFilters,
+            oxygen: config.oxygenUnits,
+            tank: config.pressureTanks,
+            motor: config.motorCount,
+            valve: config.valveCount,
+            cone: config.coneCount
+          };
+          loadDiagram(prepareDiagram({ nodes: designData.nodes ?? [], edges: designData.edges ?? [] }, `"${file.name}"`, counts));
         } catch (error) {
           alert("Error importing file: " + error.message);
         }
@@ -815,72 +562,6 @@ export default function App() {
     };
     input.click();
   };
-
-  // Reset positions only (keep counts and element counts)
-  const handleResetPositions = () => {
-    const { newNodes, edges: newEdges } = generateRASLayout(
-      intakePumps,
-      bioFilters,
-      oxygenUnits,
-      pressureTanks,
-      motorCount,
-      valveCount,
-      coneCount
-    );
-    const nodesWithSelection = newNodes.map((node) => ({
-      ...node,
-      data: { ...node.data, isSelected: false }
-    }));
-    setNodes(nodesWithSelection);
-    setEdges(newEdges);
-    setSelectedElement(null);
-  };
-
-  // Save layout as default (to localStorage)
-  const handleSaveLayout = () => {
-    const layoutData = {
-      config: {
-        intakePumps,
-        bioFilters,
-        oxygenUnits,
-        pressureTanks,
-        motorCount,
-        valveCount,
-        coneCount
-      },
-      nodes,
-      edges
-    };
-    localStorage.setItem("scada-default-layout", JSON.stringify(layoutData));
-    alert("Layout saved as default!");
-  };
-
-  // Load default layout on startup (if exists)
-  useEffect(() => {
-    const savedLayout = localStorage.getItem("scada-default-layout");
-    if (savedLayout && !isInitialized.current) {
-      try {
-        const layoutData = JSON.parse(savedLayout);
-        setIntakePumps(layoutData.config.intakePumps);
-        setBioFilters(layoutData.config.bioFilters);
-        setOxygenUnits(layoutData.config.oxygenUnits);
-        setPressureTanks(layoutData.config.pressureTanks);
-        setMotorCount(layoutData.config.motorCount);
-        setValveCount(layoutData.config.valveCount);
-        setConeCount(layoutData.config.coneCount);
-        const layout = cleanDiagram(layoutData.nodes, layoutData.edges);
-        const nodesWithSelection = layout.nodes.map((node) => ({
-          ...node,
-          data: { ...node.data, isSelected: false }
-        }));
-        setNodes(nodesWithSelection);
-        setEdges(layout.edges);
-        isInitialized.current = true;
-      } catch (error) {
-        console.error("Error loading saved layout:", error);
-      }
-    }
-  }, []);
 
   const componentCounts = [
     { label: "Pumps", value: intakePumps, onChange: handleIntakePumpsChange, key: "pump" },
@@ -970,11 +651,12 @@ export default function App() {
           <button
             type="button"
             className="toolbar-button"
-            onClick={handleResetPositions}
-            title="Restore the default positions and connections"
+            onClick={handleReset}
+            disabled={!isDirty}
+            title={isDirty ? `Discard changes and go back to ${baseline.label}` : "No changes to reset"}
           >
             <RotateCcw size={14} strokeWidth={1.8} />
-            Reset layout
+            Reset
           </button>
           <button
             type="button"

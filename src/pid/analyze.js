@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ELEMENTS, FLUIDS } from "../scada/catalog";
 import { PID_LEGEND } from "./legend";
+import { MODEL_ID as MODEL } from "./model";
 import { openPdf, pageText, renderPage } from "./pdf";
 
-const MODEL = "claude-opus-5-5";
 
 // API limits: 32 MB per request, 5 MB per image.
 const MAX_REQUEST_BYTES = 30 * 1024 * 1024;

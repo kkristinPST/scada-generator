@@ -72,7 +72,7 @@ export default function HelpModal({ isOpen, onClose }) {
           </section>
           <section>
             <h3>Manage your layout</h3>
-            <p>Adjust equipment counts in the toolbar, import or export a JSON diagram, or choose <strong>Reset layout</strong> to restore the default positions and connections.</p>
+            <p>Adjust equipment counts in the toolbar or import and export a JSON diagram. <strong>Reset</strong> discards your changes and goes back to the diagram as it was loaded: the example you opened, the file you imported, or an empty canvas after <strong>Clear</strong>. It is available once something has changed.</p>
           </section>
           <section>
             <h3>Useful tips</h3>

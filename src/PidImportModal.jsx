@@ -4,6 +4,7 @@ import { ElementIcon, FluidSwatch } from "./InventoryPanel";
 import { ELEMENTS, ELEMENTS_BY_TYPE, FLUIDS } from "./scada/catalog";
 import { buildDiagram, connectionKey, normalizeAnalysis } from "./pid/buildDiagram";
 import { MAX_PAGES, parsePageSpec } from "./pid/pages";
+import { estimateCost, MODEL_ID, MODEL_NAME, PRICE_PER_MTOK } from "./pid/model";
 
 const KEY_STORAGE = "scada-anthropic-api-key";
 const ACCEPTED_FILES = ".pdf,.svg,.png,.jpg,.jpeg,application/pdf,image/svg+xml,image/png,image/jpeg";
@@ -222,6 +223,11 @@ function UploadStep({ mode, setMode, file, setFile, pdf, pageSpec, setPageSpec, 
               <small className="inspector-note">
                 The drawing and key go from your browser straight to the Anthropic API. Nothing passes through another server.
               </small>
+              <small className="inspector-note pid-cost-note">
+                Uses {MODEL_NAME} (<code>{MODEL_ID}</code>), billed to the account this key belongs to at ${PRICE_PER_MTOK.input} per
+                million input tokens and ${PRICE_PER_MTOK.output} per million output tokens. One page is usually well under $1; the
+                exact cost is shown after the analysis.
+              </small>
             </div>
           </>
         )}
@@ -300,7 +306,7 @@ function ReviewStep({ model, meta, hasDiagram, onBack, onGenerate }) {
         {model.summary && <p className="pid-summary">{model.summary}</p>}
         <p className="pid-meta">
           {model.elements.length} elements · {model.connections.length} connections · {flagged} to review
-          {meta && ` · ${meta.inputTokens.toLocaleString()} input / ${meta.outputTokens.toLocaleString()} output tokens`}
+          {meta && ` · ${meta.inputTokens.toLocaleString()} input / ${meta.outputTokens.toLocaleString()} output tokens (about $${estimateCost(meta.inputTokens, meta.outputTokens).toFixed(2)})`}
           {meta?.fileNote && ` · drawing ${meta.fileNote}`}
         </p>
 

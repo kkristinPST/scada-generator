@@ -1206,3 +1206,20 @@ input:focus-visible,
   font-size: 11px;
   line-height: 1.4;
 }
+
+.pid-cost-note {
+  margin-top: 2px;
+}
+
+.pid-cost-note code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* Room for the Examples menu: the counters are labelled one by one, so drop the group caption first */
+@media (max-width: 1720px) {
+  .toolbar-main > .toolbar-label,
+  .toolbar-main > .toolbar-divider {
+    display: none;
+  }
+}
